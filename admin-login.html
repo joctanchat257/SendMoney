@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="rn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="section" style="max-width:400px;margin:100px auto;">
+<h2>Admin Login</h2>
+<div class="panel">
+<label>PASSWORD</label>
+<div style="position:relative;">
+<input type="password" id="adminPass" placeholder="••••••••" autocomplete="new-password">
+<span onclick="const i=document.getElementById('adminPass'); i.type=i.type==='password'?'text':'password';" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer;">👁️</span>
+</div>
+<button class="main-btn full" onclick="loginAdmin()" style="margin-top:15px;">Injira</button>
+<div id="msg" class="result"></div>
+</div>
+</div>
+<script>
+async function loginAdmin(){
+  const pass = document.getElementById('adminPass').value;
+  if(!pass){ document.getElementById('msg').textContent='Andika password'; document.getElementById('msg').style.display='block'; document.getElementById('msg').className='result show error'; return; }
+  try{
+    const res = await fetch('/api/admin/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    if(res.ok){ localStorage.setItem('admin_auth',pass); location.href='/admin.html'; }
+    else{ document.getElementById('msg').textContent='Password nabi - Andika Joctan2026! na J nini'; document.getElementById('msg').style.display='block'; document.getElementById('msg').className='result show error'; }
+  }catch(e){ document.getElementById('msg').textContent='Server ntirakora - Kora npm start'; document.getElementById('msg').style.display='block'; }
+}
+</script>
+</body>
+</html>

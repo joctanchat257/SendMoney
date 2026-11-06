@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="rn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - SendMoney</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.admin-header{background:#083b70;color:white;padding:20px 7%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.admin-card{background:white;padding:20px;border-radius:14px;margin:15px 0;box-shadow:0 5px 18px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.status-pending{background:#fff3cd;color:#856404;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
+.status-approved{background:#d4edda;color:#155724;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
+.status-rejected{background:#f8d7da;color:#721c24;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
+.btn-approve{background:#28a745;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold}
+.btn-reject{background:#dc3545;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin:20px 0}
+.stat-box{background:white;padding:20px;border-radius:14px;text-align:center;box-shadow:0 5px 18px rgba(0,0,0,0.06)}
+.stat-box h3{font-size:32px;color:#083b70;margin:0}
+</style>
+</head>
+<body>
+<script>
+// RINDA ADMIN - Niba nta auth, subira muri login
+const auth = localStorage.getItem('admin_auth');
+if(!auth){ location.href='/admin-login.html'; }
+fetch('/api/admin/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:auth})}).then(r=>{ if(!r.ok){ localStorage.removeItem('admin_auth'); location.href='/admin-login.html'; }});
+</script>
+
+<div class="admin-header">
+<div class="logo">Send<span>Money</span> - ADMIN</div>
+<nav>
+<a href="/" style="color:white;text-decoration:none;">Ahabanza</a> | 
+<a href="/client.html" style="color:white;text-decoration:none;">Client</a> | 
+<a href="#" onclick="localStorage.removeItem('admin_auth');location.href='/admin-login.html'" style="color:white;">Sohoka</a>
+</nav>
+</div>
+
+<div class="section">
+<h2>Dashboard ya Admin</h2>
+<p class="subtitle">Kwemeza abakiriya, kuraba transactions na commissions 60/20/20</p>
+
+<div class="stats">
+<div class="stat-box"><h3 id="totalCustomers">0</h3><p>Abakiriya</p></div>
+<div class="stat-box"><h3 id="pendingCustomers">0</h3><p>Bategereje</p></div>
+<div class="stat-box"><h3 id="totalAgents">0</h3><p>Agents</p></div>
+<div class="stat-box"><h3 id="totalTransactions">0</h3><p>Transactions</p></div>
+</div>
+
+<h3>Abakiriya</h3>
+<div id="customersList">Turiko turabirondera...</div>
+
+<h3 style="margin-top:40px;">Transactions</h3>
+<div id="transactionsList">Turiko...</div>
+
+<h3 style="margin-top:40px;">Agents</h3>
+<div id="agentsList">Turiko...</div>
+</div>
+
+<script>
+async function loadAll(){
+  try{
+    const resC=await fetch('/api/customers'); const dataC=await resC.json(); const customers=dataC.customers||[];
+    document.getElementById('totalCustomers').textContent=customers.length;
+    document.getElementById('pendingCustomers').textContent=customers.filter(c=>c.status==='pending').length;
+    document.getElementById('customersList').innerHTML=customers.map(c=>`
+      <div class="admin-card">
+        <div><strong>${c.full_name}</strong> - ${c.phone}<br><small>${c.country} | ${c.channel} | ID:${c.id}</small></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="status-${c.status}">${c.status.toUpperCase()}</span>
+          ${c.status==='pending'?`<button class="btn-approve" onclick="updateStatus(${c.id},'approved')">Emeza</button><button class="btn-reject" onclick="updateStatus(${c.id},'rejected')">Hakana</button>`:''}
+        </div>
+      </div>`).join('')||'<div class="panel">Nta mukiriya</div>';
+
+    const resA=await fetch('/api/agents'); const dataA=await resA.json(); 
+    document.getElementById('totalAgents').textContent=(dataA.agents||[]).length;
+    document.getElementById('agentsList').innerHTML=(dataA.agents||[]).map(a=>`
+      <div class="admin-card"><div><strong>${a.full_name}</strong> - ${a.phone}<br><small>${a.province} | ${a.commission_rate}%</small></div></div>`).join('')||'<div class="panel">Nta Agent</div>';
+
+    const resT=await fetch('/api/transactions'); const dataT=await resT.json(); 
+    document.getElementById('totalTransactions').textContent=(dataT.transactions||[]).length;
+    document.getElementById('transactionsList').innerHTML=(dataT.transactions||[]).map(t=>`
+      <div class="admin-card">
+        <div><strong>${t.code}</strong> - ${t.from_country} → ${t.to_country}<br><small>${t.receiver_phone} | ${Number(t.amount).toLocaleString()} BIF | Fee: ${Number(t.fee).toLocaleString()}</small></div>
+        <div><small>Agent 60%: ${Number(t.agent_share).toLocaleString()}<br>Super 20%: ${Number(t.super_share).toLocaleString()}</small></div>
+      </div>`).join('')||'<div class="panel">Nta transaction</div>';
+  }catch(e){ console.error(e); }
+}
+async function updateStatus(id,status){ if(!confirm('Uremeza '+status+'?')) return; await fetch(`/api/customers/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}); loadAll(); }
+loadAll(); setInterval(loadAll,5000);
+</script>
+</body>
+</html>

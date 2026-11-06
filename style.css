@@ -1,0 +1,17 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, Arial, sans-serif; background: #f1f5ff; color: #12345a; line-height:1.6; }
+header { background: #083b70; color: white; padding: 18px 7%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; position:sticky; top:0; z-index:10; }
+.logo { font-size: 28px; font-weight: 900; } .logo span { color: #13b6d5; }
+nav { display: flex; flex-wrap: wrap; gap: 18px; align-items:center; } nav a { color: white; text-decoration: none; font-weight: 600; font-size:14px; } nav a:hover { color: #13b6d5; }
+.hero { text-align: center; padding: 85px 20px; color: white; background: linear-gradient(120deg, #084477, #078bc1); }
+.hero h1 { font-size: 38px; font-weight:900; } .hero p { font-size: 18px; margin-bottom: 35px; max-width:700px; margin:0 auto 35px; }
+.section { max-width: 1050px; margin: 50px auto; padding: 0 20px; } .section h2 { color: #083b70; font-weight:800; } .subtitle { color: #627b99; margin-bottom:15px; }
+.panel { background: white; padding: 27px; margin: 20px 0; border-radius: 14px; box-shadow: 0 5px 18px rgba(0,0,0,0.06); border:1px solid #e6eef8; }
+label { display: block; font-weight: 700; margin: 16px 0 8px; font-size:13px; text-transform:uppercase; }
+input, select { width: 100%; padding: 14px; border: 1px solid #ccd9e8; border-radius: 8px; font-size: 15px; }
+.main-btn { display: inline-block; background: #10aaca; color: white; padding: 14px 22px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; } .main-btn:hover { background: #0785a5; } .full { width: 100%; margin-top:12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+.notice { background: #e4f6ff; padding: 18px; border-radius: 10px; border-left:4px solid #13b6d5; }
+.result { margin-top: 15px; padding: 14px; border-radius: 8px; display:none; } .result.show{display:block;} .success { background: #e1f8e8; color: #176b32; } .error { background: #ffe6e6; color: #a11b1b; }
+table { width: 100%; border-collapse: collapse; } th, td { padding: 12px; border-bottom: 1px solid #e6eef8; text-align: left; } th { background: #e4f1ff; }
+footer { background: #083b70; color: white; text-align: center; padding: 22px; margin-top:50px; }
