@@ -15,7 +15,7 @@ header h1{font-size:24px}header a{color:#FFD700;text-decoration:none;font-weight
 .section h2{color:#0B8A3E;margin-bottom:15px;font-size:20px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.row input{flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;min-width:150px}
 button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px}
-.btn-green{background:#0B8A3E;color:#fff}.btn-yellow{background:#FFD700;color:#000}.btn-red{background:#f44336;color:#fff}.btn-orange{background:#ff9800;color:#fff}
+.btn-green{background:#0B8A3E;color:#fff}.btn-yellow{background:#FFD700;color:#000}.btn-red{background:#f44336;color:#fff}.btn-orange{background:#ff9800;color:#fff}.btn-blue{background:#0B4D8C;color:#fff}
 .item{border:1px solid #eee;padding:15px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .item b{font-size:15px}.item span{color:#666;font-size:13px}
 .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700}
@@ -23,7 +23,7 @@ button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight
 </style>
 </head>
 <body>
-<header><h1>💸 SendMoney - Admin Dashboard</h1><a href="/">← Ahabanza</a></header>
+<header><h1>💸 SendMoney - Admin Dashboard</h1><div><a href="/">← Ahabanza</a> <button class="btn-red" onclick="logoutAdmin()" style="margin-left:10px">🚪 Sohoka</button></div></header>
 <div class="stats">
 <div class="stat"><b id="countCustomers">0</b><span>Abakiriya</span></div>
 <div class="stat"><b id="countPending">0</b><span>Bategereje</span></div>
@@ -31,22 +31,24 @@ button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight
 <div class="stat"><b id="countTransactions">0</b><span>Transactions</span></div>
 <div class="stat"><b id="platformBalance">0 BIF</b><span>Platform (Wewe 20%)</span></div>
 </div>
-<div class="section"><h2>💰 Platform - Amafaranga Yawe (20%)</h2><p id="platformInfo">Raba balance yawe...</p><div class="row"><input id="platformWithdrawAmount" type="number" placeholder="Amount yo kurotira - Minimum 5000 BIF"><button class="btn-green" onclick="withdrawPlatform()">Saba Kurotira - Platform</button></div></div>
+<div class="section"><h2>💰 Platform - Amafaranga Yawe (20%)</h2><p id="platformInfo">Raba balance yawe...</p><div class="row"><input id="platformWithdrawAmount" type="number" placeholder="Amount yo kurotira - Minimum 5000 BIF"><button class="btn-green" onclick="withdrawPlatform()">Saba Kurotira - Platform</button><button class="btn-blue" onclick="exportData()">📥 Export Abakiriya (Backup)</button></div></div>
 <div class="section"><h2>👤 Iyandikishe Super Agent - Ifise Password</h2><div class="row"><input id="superName" placeholder="Izina ryuzuye"><input id="superPhone" placeholder="Numero"><input id="superPassword" type="password" placeholder="Password - nibura 4"><input id="superProvince" placeholder="Province"><button class="btn-green" onclick="addSuperAgent()">Iyandikishe Super Agent</button></div><div id="superList"></div></div>
 <div class="section"><h2>💸 Demandes zo Kurotira</h2><div id="withdrawList">Gutegereza...</div></div>
-<div class="section"><h2>👥 Abakiriya - Bafise Password</h2><div id="customerList">Gutegereza...</div></div>
+<div class="section"><h2>👥 Abakiriya - Bafise Password</h2><p style="font-size:13px;color:#888;margin-bottom:10px">Umukiriya yibagiye Password? Kanda 🔑 Hindura Password, umuhe Password nshasha!</p><div id="customerList">Gutegereza...</div></div>
 <div class="section"><h2>🤝 Agents - Komisiyo 60% - Bafise Password</h2><div id="agentList">Gutegereza...</div></div>
 <div class="section"><h2>📋 Transactions</h2><div id="txList">Gutegereza...</div></div>
 <script>
+let allCustomers=[];
 async function loadAll(){
   try{
     const c=await fetch('/api/customers').then(r=>r.json());
     const customers=c.customers||[];
+    allCustomers=customers;
     document.getElementById('countCustomers').textContent=customers.length;
     document.getElementById('countPending').textContent=customers.filter(x=>x.status==='pending').length;
     let html='';
     customers.forEach(x=>{
-      html+=`<div class="item"><div><b>${x.full_name||x.name}</b> - ${x.phone} - ${x.country||''} | Balance: ${x.balance||0} BIF | Bonus: ${x.bonus_locked?'🔒 Ifunzwe':'✅ Ifungutse'} | Airtime: ${x.airtime_count||0}/2<br><span class="badge ${x.status}">${x.status.toUpperCase()}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-green" onclick="setStatus(${x.id},'approved')">Emeza</button><button class="btn-orange" onclick="setStatus(${x.id},'pending')">Hakana</button><button class="btn-orange" onclick="blockCustomer(${x.id})">🚫 Hagarika</button><button class="btn-green" onclick="unblockCustomer(${x.id})">✅ Unamura</button><button class="btn-red" onclick="deleteCustomer(${x.id},'${(x.full_name||x.name).replace(/'/g,'')}')">🗑️ Futa</button></div></div>`;
+      html+=`<div class="item"><div><b>${x.full_name||x.name}</b> - ${x.phone} - ${x.country||''} | Balance: ${x.balance||0} BIF | Bonus: ${x.bonus_locked?'🔒 Ifunzwe':'✅ Ifungutse'} | Airtime: ${x.airtime_count||0}/2<br><span class="badge ${x.status}">${x.status.toUpperCase()}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-green" onclick="setStatus(${x.id},'approved')">Emeza</button><button class="btn-orange" onclick="setStatus(${x.id},'pending')">Hakana</button><button class="btn-orange" onclick="blockCustomer(${x.id})">🚫 Hagarika</button><button class="btn-green" onclick="unblockCustomer(${x.id})">✅ Unamura</button><button class="btn-blue" onclick="resetPassword(${x.id},'${(x.full_name||x.name).replace(/'/g,'')}')">🔑 Hindura Password</button><button class="btn-red" onclick="deleteCustomer(${x.id},'${(x.full_name||x.name).replace(/'/g,'')}')">🗑️ Futa</button></div></div>`;
     });
     document.getElementById('customerList').innerHTML=html||'Nta mukiriya';
     const a=await fetch('/api/agents').then(r=>r.json());
@@ -81,6 +83,13 @@ async function setStatus(id,status){ await fetch('/api/customers/'+id+'/status',
 async function blockCustomer(id){ if(!confirm('Urahamya ko ushaka guhagarika uyu mukiriya?')) return; await fetch('/api/admin/block/'+id,{method:'POST'}); alert('Umukiriya yahagaritswe!'); loadAll(); }
 async function unblockCustomer(id){ await fetch('/api/admin/unblock/'+id,{method:'POST'}); alert('Umukiriya yunamuwe!'); loadAll(); }
 async function deleteCustomer(id,name){ if(!confirm('Urahamya ko ushaka GUfuta burundu '+name+'?')) return; await fetch('/api/customers/'+id,{method:'DELETE'}); alert('Umukiriya yafutwe burundu!'); loadAll(); }
+async function resetPassword(id,name){
+  const np=prompt('Password nshasha ya '+name+' - nibura inyuguti 4:');
+  if(!np||np.length<4) return alert('Password igomba kuba nibura 4!');
+  const r=await fetch('/api/admin/reset-password/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({newPassword:np})});
+  const d=await r.json(); alert(d.message+'\n\nBwira '+name+' : Password yawe nshasha ni: '+np);
+  loadAll();
+}
 async function addSuperAgent(){
   const full_name=document.getElementById('superName').value.trim();
   const phone=document.getElementById('superPhone').value.trim();
@@ -96,6 +105,12 @@ async function superWithdraw(id){ const amount=document.getElementById('sw-'+id)
 async function withdrawPlatform(){ const amount=document.getElementById('platformWithdrawAmount').value; if(!amount) return alert('Uzuza amount'); const r=await fetch('/api/withdraw/platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount})}); const d=await r.json(); alert(d.message); loadAll(); }
 async function approveWithdraw(id){ await fetch('/api/withdrawals/'+id+'/approve',{method:'POST'}); alert('Kurotira kwemejwe! Wishure uwo muntu!'); loadAll(); }
 async function rejectWithdraw(id){ await fetch('/api/withdrawals/'+id+'/reject',{method:'POST'}); alert('Demande yahakanywe'); loadAll(); }
+function logoutAdmin(){ if(confirm('Urahamya ko ushaka gusohoka muri Admin?')) window.location.href='/'; }
+function exportData(){
+  let csv='Izina,Numero,Country,Status,Balance,Bonus Locked,Airtime Count\n';
+  allCustomers.forEach(x=>{ csv+=`"${x.full_name||x.name}","${x.phone}","${x.country||''}","${x.status}","${x.balance||0}","${x.bonus_locked}","${x.airtime_count||0}"\n`; });
+  const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='SendMoney-Backup.csv'; a.click(); alert('Backup yabikwe! Bika iyi file neza!');
+}
 loadAll();
 </script>
 </body>
