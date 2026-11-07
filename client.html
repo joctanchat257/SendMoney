@@ -1,15 +1,108 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Mon Compte</title><link rel="stylesheet" href="style.css"><style>.wallet{background:linear-gradient(120deg,#084477,#078bc1);color:white;padding:30px;border-radius:16px;margin:20px 0}.wallet h2{font-size:36px}.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.action-btn{background:white;border:1px solid #ccd9e8;padding:18px;border-radius:12px;text-align:center;cursor:pointer;font-weight:bold}</style></head><body>
-<header><div class="logo">Send<span>Money</span></div><nav><a href="/">Ahabanza</a><a href="/admin-login.html">Admin</a></nav></header>
-<div class="section" id="loginSection"><h2>Injira</h2><div class="panel"><label>Izina</label><input id="loginName"><label>Telefone</label><input id="loginPhone"><button class="main-btn full" onclick="login()">Injira</button><div id="loginMsg" class="result"></div></div></div>
-<div class="section" id="dashboardSection" style="display:none;"><div class="wallet"><p id="userName"></p><h2 id="userBalance">500,000 BIF</h2><p id="userPhone"></p><button onclick="loadWallet()" style="background:white;color:#084477;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:10px;">🔄 Refresh</button></div>
-<div class="actions"><div class="action-btn" onclick="document.getElementById('airtimeBox').style.display='block'">📱 Gura Unités</div><div class="action-btn" onclick="location.href='/#send'">💸 Ohereza</div><div class="action-btn" onclick="logout()">🚪 Sohoka</div></div>
-<div id="airtimeBox" class="panel" style="display:none;"><h3>Gura Unités</h3><label>Telefone</label><input id="airPhone" placeholder="+257..."><label>Amount</label><input id="airAmount" type="number" placeholder="1000"><label>Operateur</label><select id="airOperator"><option>Lumitel</option><option>Econet</option><option>Smart</option></select><button class="main-btn full" onclick="buyAirtime()">Gura</button><div id="airMsg" class="result"></div><h4>Amateka ya Unités</h4><div id="airHistory"></div></div>
-<div id="clientHistory" class="panel"></div></div>
+<!DOCTYPE html>
+<html lang="rn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Compte - SendMoney</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#f5f5f5;padding:20px}
+header{background:#0B8A3E;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}
+header a{color:#FFD700;text-decoration:none;font-weight:700}
+.card{background:#fff;padding:25px;border-radius:15px;max-width:500px;margin:20px auto;box-shadow:0 2px 15px rgba(0,0,0,0.08)}
+.card h2{color:#0B8A3E;margin-bottom:15px;text-align:center}
+.card input,.card select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;font-size:16px}
+.card button{background:#0B8A3E;color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer}
+.msg{margin-top:12px;padding:12px;border-radius:10px;text-align:center;display:none}
+.msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}
+.balance{font-size:32px;font-weight:900;color:#0B8A3E;text-align:center;margin:10px 0}
+.actions{display:flex;gap:10px;margin-top:15px}
+.actions button{flex:1}
+.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px}
+</style>
+</head>
+<body>
+<header><h1>💸 SendMoney - Mon Compte</h1><a href="/">← Ahabanza</a></header>
+<div class="card" id="loginCard">
+<h2>Injira - Client</h2>
+<input id="loginName" placeholder="Izina ryuzuye" />
+<input id="loginPhone" placeholder="Numero" />
+<input id="loginPassword" type="password" placeholder="Password" />
+<button onclick="login()">Injira →</button>
+<div id="loginMsg" class="msg"></div>
+<p style="text-align:center;margin-top:12px;font-size:13px;color:#888">Nta Compte? <a href="/">Iyandikishe hano</a></p>
+</div>
+<div class="card" id="dashCard" style="display:none">
+<h2 id="dashName">Murakaza neza</h2>
+<p style="text-align:center;color:#666" id="dashPhone"></p>
+<div class="balance" id="dashBalance">0 BIF</div>
+<p style="text-align:center;font-size:13px;color:#888" id="dashBonus"></p>
+<div class="actions"><button onclick="showAirtime()">Gura Unités</button><button onclick="showSend()">Ohereza</button></div>
+<div id="airtimeBox" style="display:none;margin-top:15px">
+<input id="airPhone" placeholder="Numero yo kurungikira Unités" />
+<input id="airAmount" type="number" placeholder="Amount - ex: 1000" />
+<select id="airOperator"><option>Lumitel</option><option>Econet</option></select>
+<button onclick="buyAirtime()">Gura Unités</button>
+</div>
+<div id="sendBox" style="display:none;margin-top:15px">
+<input id="sendPhone" placeholder="Numero y'uwakira" />
+<input id="sendAmount" type="number" placeholder="Amount" />
+<button onclick="sendMoney()">Ohereza</button>
+</div>
+<div id="sendMsg" class="msg"></div>
+<h3 style="margin-top:20px;color:#0B8A3E">Transactions zawe</h3>
+<div id="txList"></div>
+<button onclick="logout()" style="background:#f44336;margin-top:20px">Sohoka</button>
+</div>
 <script>
-let currentCustomer=null;
-async function login(){const n=loginName.value.trim(),p=loginPhone.value.trim(),m=loginMsg;if(!n||!p){m.textContent='Uzuza';m.className='result show error';m.style.display='block';return;}m.textContent='Turiko...';m.style.display='block';try{const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:n,phone:p})});const data=await res.json();if(!res.ok) throw new Error(data.message);currentCustomer=data.customer;loginSection.style.display='none';dashboardSection.style.display='block';userName.textContent=data.customer.full_name;userPhone.textContent=data.customer.phone;clientHistory.innerHTML=(data.transactions||[]).map(x=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee"><div><b>${x.code}</b><br><small>${x.from_country}→${x.to_country}</small></div><div>${Number(x.amount).toLocaleString()} BIF</div></div>`).join('')||'Nta';loadWallet();loadAirtimeHistory();}catch(e){m.textContent=e.message;m.className='result show error';}}
-async function loadWallet(){if(!currentCustomer) return;const res=await fetch(`/api/wallet/${currentCustomer.id}`);const data=await res.json();userBalance.textContent=Number(data.wallet.balance).toLocaleString()+' BIF';}
-async function buyAirtime(){const phone=airPhone.value.trim(),amount=airAmount.value,operator=airOperator.value,msg=airMsg;if(!phone||!amount){msg.textContent='Uzuza';msg.className='result show error';msg.style.display='block';return;}msg.textContent='Turiko...';msg.style.display='block';try{const res=await fetch('/api/airtime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId:currentCustomer.id,phone,amount,operator})});const data=await res.json();if(!res.ok) throw new Error(data.message);msg.textContent=data.message;msg.className='result show success';loadWallet();loadAirtimeHistory();}catch(e){msg.textContent=e.message;msg.className='result show error';}}
-async function loadAirtimeHistory(){if(!currentCustomer) return;const res=await fetch(`/api/airtime/${currentCustomer.id}`);const data=await res.json();airHistory.innerHTML=(data.purchases||[]).map(p=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee"><span>${p.phone} - ${p.operator}</span><span>${Number(p.amount).toLocaleString()} BIF</span></div>`).join('')||'Nta';}
-function logout(){dashboardSection.style.display='none';loginSection.style.display='block';}
-</script></body></html>
+let customerId=null;
+async function login(){
+  const name=document.getElementById('loginName').value.trim();
+  const phone=document.getElementById('loginPhone').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  const m=document.getElementById('loginMsg');
+  if(!name||!phone||!password){ m.className='msg error'; m.textContent='Uzuza izina, numero na Password!'; return; }
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:name, phone, password})});
+    const d=await r.json();
+    if(!r.ok){ m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; return; }
+    customerId=d.customer.id;
+    document.getElementById('loginCard').style.display='none';
+    document.getElementById('dashCard').style.display='block';
+    document.getElementById('dashName').textContent='Murakaza neza, '+d.customer.full_name;
+    document.getElementById('dashPhone').textContent=d.customer.phone;
+    document.getElementById('dashBalance').textContent=(d.wallet?d.wallet.balance:0)+' BIF';
+    document.getElementById('dashBonus').textContent=d.wallet&&d.wallet.bonus_locked ? '🔒 Bonus ifunzwe - Gura Unités inshuro '+(2-(d.wallet.airtime_count||0))+' zikurikira' : '✅ Bonus irafungutse - Ushobora kurungika!';
+    let th='';
+    (d.transactions||[]).forEach(x=>{ th+=`<div class="tx"><b>${x.code||''}</b> - ${x.amount} BIF - ${x.type||''} - ${x.receiver_phone||x.to_phone||''}</div>`; });
+    document.getElementById('txList').innerHTML=th||'Nta transaction';
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+}
+function showAirtime(){ document.getElementById('airtimeBox').style.display='block'; document.getElementById('sendBox').style.display='none'; }
+function showSend(){ document.getElementById('sendBox').style.display='block'; document.getElementById('airtimeBox').style.display='none'; }
+async function buyAirtime(){
+  const phone=document.getElementById('airPhone').value.trim();
+  const amount=document.getElementById('airAmount').value;
+  const operator=document.getElementById('airOperator').value;
+  const m=document.getElementById('sendMsg');
+  try{
+    const r=await fetch('/api/airtime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId, phone, amount, operator})});
+    const d=await r.json();
+    m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error;
+    if(r.ok) setTimeout(()=>location.reload(),1000);
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+}
+async function sendMoney(){
+  const to_phone=document.getElementById('sendPhone').value.trim();
+  const amount=document.getElementById('sendAmount').value;
+  const m=document.getElementById('sendMsg');
+  try{
+    const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_customer_id:customerId, to_phone, amount})});
+    const d=await r.json();
+    m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error||'Vyagenze!';
+    if(r.ok) setTimeout(()=>location.reload(),1000);
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+}
+function logout(){ location.reload(); }
+</script>
+</body>
+</html>
