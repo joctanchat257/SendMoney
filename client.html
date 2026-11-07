@@ -8,16 +8,15 @@
 body{background:#f5f5f5;padding:20px}
 header{background:#0B8A3E;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}
 header a{color:#FFD700;text-decoration:none;font-weight:700}
-.card{background:#fff;padding:25px;border-radius:15px;max-width:500px;margin:20px auto;box-shadow:0 2px 15px rgba(0,0,0,0.08)}
+.card{background:#fff;padding:25px;border-radius:15px;max-width:550px;margin:20px auto;box-shadow:0 2px 15px rgba(0,0,0,0.08)}
 .card h2{color:#0B8A3E;margin-bottom:15px;text-align:center}
 .card input,.card select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;font-size:16px}
 .card button{background:#0B8A3E;color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer}
 .msg{margin-top:12px;padding:12px;border-radius:10px;text-align:center;display:none}
 .msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}
 .balance{font-size:32px;font-weight:900;color:#0B8A3E;text-align:center;margin:10px 0}
-.actions{display:flex;gap:10px;margin-top:15px}
-.actions button{flex:1}
-.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px}
+.actions{display:flex;gap:10px;margin-top:15px}.actions button{flex:1}
+.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -25,11 +24,11 @@ header a{color:#FFD700;text-decoration:none;font-weight:700}
 <div class="card" id="loginCard">
 <h2>Injira - Client</h2>
 <input id="loginName" placeholder="Izina ryuzuye" />
-<input id="loginPhone" placeholder="Numero" />
+<input id="loginPhone" placeholder="Numero - 79123456 canke +25779123456" />
 <input id="loginPassword" type="password" placeholder="Password" />
 <button onclick="login()">Injira →</button>
 <div id="loginMsg" class="msg"></div>
-<p style="text-align:center;margin-top:12px;font-size:13px;color:#888">Nta Compte? <a href="/">Iyandikishe hano</a></p>
+<p style="text-align:center;margin-top:12px;font-size:13px;color:#888">Wibagiye Password? <b>Hamagar Admin</b> - ni we azoguhindurira Password nshasha.<br>Nta Compte? <a href="/">Iyandikishe hano</a></p>
 </div>
 <div class="card" id="dashCard" style="display:none">
 <h2 id="dashName">Murakaza neza</h2>
@@ -39,7 +38,7 @@ header a{color:#FFD700;text-decoration:none;font-weight:700}
 <div class="actions"><button onclick="showAirtime()">Gura Unités</button><button onclick="showSend()">Ohereza</button></div>
 <div id="airtimeBox" style="display:none;margin-top:15px">
 <input id="airPhone" placeholder="Numero yo kurungikira Unités" />
-<input id="airAmount" type="number" placeholder="Amount - ex: 1000" />
+<input id="airAmount" type="number" placeholder="Amount" />
 <select id="airOperator"><option>Lumitel</option><option>Econet</option></select>
 <button onclick="buyAirtime()">Gura Unités</button>
 </div>
@@ -49,18 +48,23 @@ header a{color:#FFD700;text-decoration:none;font-weight:700}
 <button onclick="sendMoney()">Ohereza</button>
 </div>
 <div id="sendMsg" class="msg"></div>
-<h3 style="margin-top:20px;color:#0B8A3E">Transactions zawe</h3>
+<h3 style="margin-top:20px;color:#0B8A3E">📋 Transactions zawe - Historique</h3>
 <div id="txList"></div>
-<button onclick="logout()" style="background:#f44336;margin-top:20px">Sohoka</button>
+<h3 style="margin-top:20px;color:#0B8A3E">📱 Unités waguriye</h3>
+<div id="airList"></div>
+<button onclick="logout()" style="background:#f44336;margin-top:20px">🚪 Sohoka</button>
 </div>
 <script>
 let customerId=null;
+function normPhone(p){ p=String(p||'').trim().replace(/[\s\-]/g,''); if(p.startsWith('0')) p='+257'+p.slice(1); if(/^\d{8}$/.test(p)) p='+257'+p; if(/^257\d{8}$/.test(p)) p='+'+p; return p; }
 async function login(){
   const name=document.getElementById('loginName').value.trim();
-  const phone=document.getElementById('loginPhone').value.trim();
+  const phone=normPhone(document.getElementById('loginPhone').value);
   const password=document.getElementById('loginPassword').value;
   const m=document.getElementById('loginMsg');
   if(!name||!phone||!password){ m.className='msg error'; m.textContent='Uzuza izina, numero na Password!'; return; }
+  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi! Andika 79123456 canke +25779123456'; return; }
+  m.className='msg success'; m.textContent='Tegereza gato... Site iratinda gato...';
   try{
     const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:name, phone, password})});
     const d=await r.json();
@@ -73,36 +77,41 @@ async function login(){
     document.getElementById('dashBalance').textContent=(d.wallet?d.wallet.balance:0)+' BIF';
     document.getElementById('dashBonus').textContent=d.wallet&&d.wallet.bonus_locked ? '🔒 Bonus ifunzwe - Gura Unités inshuro '+(2-(d.wallet.airtime_count||0))+' zikurikira' : '✅ Bonus irafungutse - Ushobora kurungika!';
     let th='';
-    (d.transactions||[]).forEach(x=>{ th+=`<div class="tx"><b>${x.code||''}</b> - ${x.amount} BIF - ${x.type||''} - ${x.receiver_phone||x.to_phone||''}</div>`; });
+    (d.transactions||[]).forEach(x=>{ th+=`<div class="tx"><b>${x.code||''}</b> - ${x.amount} BIF - ${x.type||''} - ${x.receiver_phone||x.to_phone||''} | Fee: ${x.fee||0} BIF<br><span style="color:#888">${new Date(x.created_at).toLocaleString()}</span></div>`; });
     document.getElementById('txList').innerHTML=th||'Nta transaction';
-  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+    let ah='';
+    (d.airtime||[]).forEach(x=>{ ah+=`<div class="tx"><b>${x.amount} BIF</b> - ${x.operator} - ${x.phone}<br><span style="color:#888">${new Date(x.created_at).toLocaleString()}</span></div>`; });
+    document.getElementById('airList').innerHTML=ah||'Nta Unités';
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - Site iratinda, gerageza nshasha'; }
 }
 function showAirtime(){ document.getElementById('airtimeBox').style.display='block'; document.getElementById('sendBox').style.display='none'; }
 function showSend(){ document.getElementById('sendBox').style.display='block'; document.getElementById('airtimeBox').style.display='none'; }
 async function buyAirtime(){
-  const phone=document.getElementById('airPhone').value.trim();
+  const phone=normPhone(document.getElementById('airPhone').value);
   const amount=document.getElementById('airAmount').value;
   const operator=document.getElementById('airOperator').value;
   const m=document.getElementById('sendMsg');
+  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi!'; return; }
   try{
     const r=await fetch('/api/airtime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId, phone, amount, operator})});
     const d=await r.json();
     m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error;
-    if(r.ok) setTimeout(()=>location.reload(),1000);
+    if(r.ok) setTimeout(()=>location.reload(),1200);
   }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
 }
 async function sendMoney(){
-  const to_phone=document.getElementById('sendPhone').value.trim();
+  const to_phone=normPhone(document.getElementById('sendPhone').value);
   const amount=document.getElementById('sendAmount').value;
   const m=document.getElementById('sendMsg');
+  if(!/^\+257\d{8}$/.test(to_phone)){ m.className='msg error'; m.textContent='Numero y\'uwakira nabi!'; return; }
   try{
     const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_customer_id:customerId, to_phone, amount})});
     const d=await r.json();
     m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error||'Vyagenze!';
-    if(r.ok) setTimeout(()=>location.reload(),1000);
+    if(r.ok) setTimeout(()=>location.reload(),1200);
   }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
 }
-function logout(){ location.reload(); }
+function logout(){ if(confirm('Urahamya ko ushaka gusohoka?')) location.reload(); }
 </script>
 </body>
 </html>
