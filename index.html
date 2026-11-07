@@ -51,12 +51,12 @@ footer{background:#0B4D8C;color:#fff;text-align:center;padding:25px;margin-top:2
 <div class="hero-right" id="send">
 <label>KUVA HEHE?</label><select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
 <label>UJA HE?</label><select id="toCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<label>NUMERO Y'UWAKIRA</label><input id="receiverPhone" placeholder="Numero y'uwakira" />
+<label>NUMERO Y'UWAKIRA</label><input id="receiverPhone" placeholder="79123456 canke +25779123456" />
 <label>AMOUNT (BIF)</label><input id="amount" type="number" placeholder="Amount" />
 <label>UBURYO BWO KWISHURA</label><select id="paymentMethod"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select>
 <button class="btn-send" onclick="sendMoney()">Ohereza →</button>
 <div id="sendMsg" class="msg"></div>
-<p style="text-align:center;font-size:13px;color:#888;margin-top:10px">Banza winjire muri Compte yawe imbere yo kurungika. Bonus 10,000 BIF ifunzwe - banza ugure Unités inshuro 2.</p>
+<p style="text-align:center;font-size:13px;color:#888;margin-top:10px">Banza winjire muri Compte yawe imbere yo kurungika. Bonus 10,000 BIF ifunzwe - banza ugure Unités inshuro 2. Site irashobora gutinda gato - Render Free irasinzira gato, tegereza gato.</p>
 </div>
 </div>
 <div class="cards">
@@ -64,7 +64,7 @@ footer{background:#0B4D8C;color:#fff;text-align:center;padding:25px;margin-top:2
 <h3>👤 Kwiyandikisha - Client</h3>
 <p>Iyandikishe, tegereza Admin yemeze, wakire <b>10,000 BIF</b> ya Bonus! Bonus ifunzwe - ushobora kugura Unités gusa ubu.</p>
 <input id="regName" placeholder="Izina ryuzuye" />
-<input id="regPhone" placeholder="Numero" />
+<input id="regPhone" placeholder="Numero - 79123456 canke +25779123456" />
 <input id="regPassword" type="password" placeholder="Password - nibura inyuguti 4" />
 <select id="regCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
 <select id="regChannel"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select>
@@ -89,31 +89,34 @@ footer{background:#0B4D8C;color:#fff;text-align:center;padding:25px;margin-top:2
 </div>
 </div>
 <div class="how"><h2>Uko Bikora - Intambwe 3 Zoroshe</h2><div class="steps"><div class="step"><b>1️⃣</b><h4>Iyandikishe</h4><p>Iyandikishe ubuntu, ronka Bonus 10,000 BIF. Tegereza Admin yemeze.</p></div><div class="step"><b>2️⃣</b><h4>Gura Unités 2x</h4><p>Gura Unités inshuro 2 kugira Bonus yawe ifunguke.</p></div><div class="step"><b>3️⃣</b><h4>Rungika</h4><p>Bonus imaze gufunguka, rungika amafaranga vuba! Komisiyo 2% gusa.</p></div></div></div>
-<footer><p>© 2026 SendMoney - Joctan Nyandwi 🇧🇮</p><p><a href="client.html">Mon Compte</a> | <a href="admin-login.html">Admin</a></p><p style="font-size:13px;opacity:0.8;margin-top:10px">Bonus ni amafaranga ya Electronique muri SendMoney gusa.</p></footer>
+<footer><p>© 2026 SendMoney - Joctan Nyandwi 🇧🇮</p><p><a href="client.html">Mon Compte</a> | <a href="admin-login.html">Admin</a></p><p style="font-size:13px;opacity:0.8;margin-top:10px">Bonus ni amafaranga ya Electronique muri SendMoney gusa - yo kwerekana ukuntu urubuga rukora. SendMoney ntibika Password zawe ku karubanda. Ingorane? Hamagara Admin.</p><p style="font-size:12px;opacity:0.7;margin-top:8px">Amategeko: Numero 1 = Compte 1 gusa. Password ni ibanga ryawe - ntuyihe umuntu n'umwe. Admin ntazokubaza Password yawe.</p></footer>
 <script>
+function normPhone(p){ p=String(p||'').trim().replace(/[\s\-]/g,''); if(p.startsWith('0')) p='+257'+p.slice(1); if(/^\d{8}$/.test(p)) p='+257'+p; if(/^257\d{8}$/.test(p)) p='+'+p; return p; }
 async function register(){
   const full_name=document.getElementById('regName').value.trim();
-  const phone=document.getElementById('regPhone').value.trim();
+  const phone=normPhone(document.getElementById('regPhone').value);
   const password=document.getElementById('regPassword').value;
   const country=document.getElementById('regCountry').value;
   const channel=document.getElementById('regChannel').value;
   const m=document.getElementById('regMsg');
   if(!full_name||!phone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
+  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi! Andika 79123456 canke +25779123456'; return; }
   if(!password||password.length<4){ m.className='msg error'; m.textContent='Password igomba kuba nibura inyuguti 4!'; return; }
   try{
     const r=await fetch('/api/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,country,channel,password})});
     const d=await r.json();
     if(r.ok){ m.className='msg success'; m.textContent='✅ '+d.message; }
     else{ m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
-  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - Site iratinda gato, gerageza nshasha'; }
 }
 async function registerAgent(){
   const full_name=document.getElementById('agentName').value.trim();
-  const phone=document.getElementById('agentPhone').value.trim();
+  const phone=normPhone(document.getElementById('agentPhone').value);
   const password=document.getElementById('agentPassword').value;
   const province=document.getElementById('agentProvince').value.trim();
   const m=document.getElementById('agentMsg');
   if(!full_name||!phone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
+  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi!'; return; }
   if(!password||password.length<4){ m.className='msg error'; m.textContent='Password igomba kuba nibura inyuguti 4!'; return; }
   try{
     const r=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,province,password})});
@@ -124,7 +127,7 @@ async function registerAgent(){
 }
 async function sendMoney(){
   const m=document.getElementById('sendMsg');
-  const receiverPhone=document.getElementById('receiverPhone').value.trim();
+  const receiverPhone=normPhone(document.getElementById('receiverPhone').value);
   const amount=document.getElementById('amount').value;
   if(!receiverPhone||!amount){ m.className='msg error'; m.textContent='Uzuza numero n\'amount!'; return; }
   m.className='msg error'; m.textContent='Banza winjire muri Compte yawe imbere yo kurungika! Kanda Injira.'; return;
