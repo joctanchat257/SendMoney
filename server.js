@@ -22,6 +22,24 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS airtime_purchases (id SERIAL PRIMARY KEY, customer_id INTEGER REFERENCES customers(id), phone TEXT, amount NUMERIC, operator TEXT DEFAULT 'Lumitel', created_at TIMESTAMP DEFAULT NOW());
       CREATE TABLE IF NOT EXISTS agents (id SERIAL PRIMARY KEY, full_name TEXT NOT NULL, phone TEXT UNIQUE NOT NULL, province TEXT, commission_rate NUMERIC DEFAULT 20, created_at TIMESTAMP DEFAULT NOW());
     `);
+    // Kongeramwo colonnes zibuze kuri tables za kera
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS full_name TEXT;`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS name TEXT;`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'Burundi';`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'Mobile Money';`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDING';`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS from_country TEXT;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS to_country TEXT;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receiver_phone TEXT;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS code TEXT;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS agent_share NUMERIC DEFAULT 0;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS super_share NUMERIC DEFAULT 0;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS platform_share NUMERIC DEFAULT 0;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_method TEXT;`);
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS customer_id INTEGER;`);
+    // Kuzuza full_name kuri customers za kera zifise name gusa
+    await pool.query(`UPDATE customers SET full_name = name WHERE full_name IS NULL;`);
+    await pool.query(`UPDATE customers SET name = full_name WHERE name IS NULL;`);
     console.log('✅ Tables zikozwe / PostgreSQL ihujwe!');
   } catch(e){ console.log('❌ DB error:', e.message); }
 }
@@ -29,8 +47,6 @@ initDB();
 app.get('/', (req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 app.get('/api/status', (req,res)=>res.json({message:'SendMoney irakora'}));
 app.get('/db-test', async (req,res)=>{ try{ const r=await pool.query('SELECT NOW()'); res.json({message:'Database ihuye neza', time:r.rows[0].now}); }catch(e){ res.status(500).json({error:e.message}); } });
-
-// --- FRONTEND script.js ihuye ---
 app.post('/api/customers', async (req,res)=>{
   const {full_name, name, phone, country, channel}=req.body;
   const finalName = full_name || name;
@@ -64,8 +80,6 @@ app.post('/api/agents', async (req,res)=>{
   if(!full_name||!phone) return res.status(400).json({message:'Izina na telefone birakenewe'});
   try{ const r=await pool.query('INSERT INTO agents (full_name, phone, province) VALUES ($1,$2,$3) RETURNING *',[full_name, phone, province||'']); res.json({message:'Agent yanditswe', agent:r.rows[0]}); }catch(e){ if(e.code==='23505') return res.status(400).json({message:'Agent aramaze kubaho'}); res.status(500).json({message:e.message}); }
 });
-
-// --- ADMIN / CLIENT ya kera ---
 app.post('/api/register', async (req,res)=>{
   const {name, full_name, phone, country, channel}=req.body;
   const finalName = full_name || name;
