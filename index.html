@@ -3,108 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SendMoney - Rungika Amafaranga Vuba</title>
-<link rel="stylesheet" href="style.css">
+<title>SendMoney - Rungika Amafaranga Vuba, Vyizigiro</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
-body{background:#F6F9F2;color:#1A1A1A}
-header{background:white;padding:16px 6%;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,0.08);position:sticky;top:0;z-index:10}
-.logo{font-size:26px;font-weight:900;color:#0B8A3E}.logo span{color:#FFB800}
-nav a{margin-left:18px;text-decoration:none;color:#083b70;font-weight:700;font-size:14px}
-.hero{background:linear-gradient(120deg,#0B8A3E,#0A6B2E);color:white;padding:50px 6%;display:flex;gap:30px;align-items:center;flex-wrap:wrap}
-.hero h1{font-size:38px;line-height:1.2;margin-bottom:12px}.hero h1 span{color:#FFD700}
-.hero p{font-size:17px;opacity:0.92;margin-bottom:20px;max-width:520px}
-.btn-yellow{background:#FFD700;color:#0B3B1E;padding:14px 28px;border-radius:999px;font-weight:900;border:none;cursor:pointer;font-size:16px;box-shadow:0 6px 20px rgba(0,0,0,0.2)}
-.btn-white{background:white;color:#0B8A3E;padding:14px 24px;border-radius:999px;font-weight:800;border:2px solid white;cursor:pointer;margin-left:10px}
-.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:22px}
-.stat{background:rgba(255,255,255,0.18);padding:14px 20px;border-radius:14px;backdrop-filter:blur(6px)}
-.stat b{font-size:22px;display:block}.stat small{opacity:0.85}
-.section{padding:32px 6%;max-width:1100px;margin:auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:18px}
-.panel{background:white;padding:24px;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,0.07)}
-.panel h3{color:#0B8A3E;margin-bottom:6px}
-.panel p{color:#666;font-size:14px;margin-bottom:14px}
-label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
-input,select{width:100%;padding:13px;border:1.5px solid #E1E8E0;border-radius:12px;font-size:15px;outline:none}
-input:focus,select:focus{border-color:#0B8A3E}
-.main-btn{background:#0B8A3E;color:white;padding:14px;border:none;border-radius:12px;width:100%;font-weight:800;font-size:16px;cursor:pointer;margin-top:16px}
-.main-btn:hover{background:#0A6B2E}
-.result{padding:12px;border-radius:12px;margin-top:12px;display:none;font-size:14px}
-.result.show{display:block}.result.success{background:#D4EDDA;color:#155724}.result.error{background:#F8D7DA;color:#721C24}
-.badge{background:#FFF3CD;color:#856404;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800}
-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}th{text-align:left;padding:10px;background:#F0F7F0}td{padding:10px;border-bottom:1px solid #eee}
-footer{background:#0A2E1A;color:white;padding:24px 6%;text-align:center;margin-top:30px}
-footer a{color:#FFD700;text-decoration:none;font-weight:700}
-@media(max-width:640px){.hero h1{font-size:30px}nav a{margin-left:10px}}
+body{background:#f5f5f5}
+header{background:#fff;padding:15px 40px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.1);position:sticky;top:0;z-index:100}
+.logo{font-size:28px;font-weight:900;color:#0B8A3E}
+.logo span{color:#FFD700;-webkit-text-stroke:1px #0B8A3E}
+nav a{margin-left:25px;text-decoration:none;color:#0B4D8C;font-weight:700;font-size:16px}
+nav a:hover{color:#0B8A3E}
+.hero{background:#0B8A3E;color:#fff;display:flex;padding:40px;gap:30px;align-items:flex-start}
+.hero-left{flex:1;text-align:center;padding-top:30px}
+.badge{background:#FFF8DC;color:#0B8A3E;padding:8px 20px;border-radius:20px;font-weight:700;font-size:14px;display:inline-block;margin-bottom:20px}
+.hero-left h1{font-size:48px;line-height:1.2;margin-bottom:20px}
+.hero-left h1 span{color:#FFD700}
+.hero-left p{font-size:18px;line-height:1.6;opacity:0.95;margin-bottom:25px}
+.btn-yellow{background:#FFD700;color:#000;padding:14px 28px;border:none;border-radius:30px;font-weight:800;font-size:16px;cursor:pointer}
+.btn-white{background:#fff;color:#0B8A3E;padding:14px 28px;border:none;border-radius:30px;font-weight:800;font-size:16px;cursor:pointer;margin-left:10px}
+.stats{display:flex;gap:15px;justify-content:center;margin-top:30px}
+.stat{background:rgba(255,255,255,0.15);padding:20px;border-radius:15px;min-width:140px}
+.stat b{font-size:26px;display:block}
+.stat span{font-size:14px;opacity:0.9}
+.hero-right{flex:1;background:#fff;color:#333;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,0.2)}
+.hero-right label{display:block;font-weight:700;margin:15px 0 8px;text-align:center;font-size:14px}
+.hero-right input,.hero-right select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;font-size:16px}
+.btn-send{background:#0B8A3E;color:#fff;width:100%;padding:15px;border:none;border-radius:10px;font-weight:800;font-size:18px;cursor:pointer;margin-top:20px}
+.msg{margin-top:15px;padding:12px;border-radius:10px;text-align:center;font-size:14px;display:none}
+.msg.success{background:#d4edda;color:#155724;display:block}
+.msg.error{background:#f8d7da;color:#721c24;display:block}
+.msg.info{background:#fff3cd;color:#856404;display:block}
+.cards{display:flex;gap:20px;padding:40px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
+.card{flex:1;background:#fff;border-radius:15px;padding:25px;box-shadow:0 2px 15px rgba(0,0,0,0.08);min-width:280px}
+.card h3{color:#0B8A3E;margin-bottom:12px;font-size:20px}
+.card p{line-height:1.6;color:#555;margin-bottom:15px}
+.card input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px;font-size:15px}
+.card select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px}
+.card button{background:#0B8A3E;color:#fff;width:100%;padding:13px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:16px}
+.card button.yellow{background:#FFD700;color:#000}
+.how{max-width:1100px;margin:0 auto;padding:0 40px 40px}
+.how h2{text-align:center;margin-bottom:25px;font-size:28px;color:#0B8A3E}
+.steps{display:flex;gap:20px;flex-wrap:wrap}
+.step{flex:1;background:#fff;padding:25px;border-radius:15px;text-align:center;min-width:220px}
+.step b{font-size:30px}
+.step h4{margin:10px 0}
+.step p{color:#666;line-height:1.5}
+footer{background:#0B4D8C;color:#fff;text-align:center;padding:25px;margin-top:20px}
+footer a{color:#FFD700;text-decoration:none}
+@media(max-width:800px){.hero{flex-direction:column;padding:20px}header{padding:15px 20px}nav a{margin-left:12px;font-size:14px}.hero-left h1{font-size:32px}}
 </style>
 </head>
 <body>
-<header><div class="logo">💸 Send<span>Money</span></div><nav><a href="/">Ahabanza</a><a href="/client.html">Mon Compte</a><a href="/admin-login.html">Admin</a></nav></header>
+<header>
+<div class="logo">💸 Send<span>Money</span></div>
+<nav><a href="#send">Ahabanza</a><a href="client.html">Mon Compte</a><a href="admin-login.html">Admin</a></nav>
+</header>
 
 <div class="hero">
-<div style="flex:1;min-width:280px">
+<div class="hero-left">
 <div class="badge">🇧🇮 Burundi • Rwanda • RDC • Tanzanie</div>
 <h1>Rungika Amafaranga <span>Vuba, Vyizigiro.</span></h1>
 <p>SendMoney ni uburyo bworoshye bwo kurungika amafaranga, kugura Unités, no gukorana na Agents mu Burundi hose. Komisiyo 2% gusa - 60% Agent, 20% Super, 20% Platform.</p>
-<button class="btn-yellow" onclick="document.getElementById('registerBox').scrollIntoView({behavior:'smooth'})">✨ Iyandikishe Ubu - Ubuntu</button>
-<button class="btn-white" onclick="location.href='/client.html'">Injira →</button>
+<button class="btn-yellow" onclick="document.getElementById('register').scrollIntoView({behavior:'smooth'})">💸 Iyandikishe Ubu - Ubuntu</button>
+<button class="btn-white" onclick="window.location.href='client.html'">Injira →</button>
 <div class="stats">
-<div class="stat"><b>500,000 BIF</b><small>Bonus yo Kwiyandikisha</small></div>
-<div class="stat"><b>2% gusa</b><small>Komisiyo</small></div>
-<div class="stat"><b>24/7</b><small>Irakora Amasaha Yose</small></div>
-</div>
-</div>
-<div style="flex:0.9;min-width:280px;background:white;color:#1A1A1A;padding:22px;border-radius:20px;box-shadow:0 12px 30px rgba(0,0,0,0.25)">
-<h3 style="color:#0B8A3E">💸 Ohereza Ubu</h3>
-<p style="font-size:13px;color:#666;margin:6px 0 12px">Uzuza, rungika, wakira Code SMxxxxxx</p>
-<form id="transferForm">
-<label>Uva he?</label><select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<label>Uja he?</label><select id="toCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<label>Numero y'Uwakira</label><input id="receiverPhone" placeholder="+257...">
-<label>Amount (BIF)</label><input id="amount" type="number" placeholder="5000">
-<label>Uburyo bwo Kwishura</label><select id="paymentMethod"><option>Mobile Money</option><option>Lumitel</option><option>Econet</option><option>Cash</option></select>
-<button class="main-btn" type="submit">Ohereza →</button>
-<div id="transferResult" class="result"></div>
-</form>
+<div class="stat"><b>10,000 BIF</b><span>Bonus yo Kwiyandikisha</span></div>
+<div class="stat"><b>2% gusa</b><span>Komisiyo</span></div>
+<div class="stat"><b>24/7</b><span>Irakora Amasaha Yose</span></div>
 </div>
 </div>
 
-<div class="section">
-<div class="grid">
-<div class="panel" id="registerBox">
-<h3>👤 Kwiyandikisha</h3><p>Iyandikishe, tegareza Admin yemeze, wakira 500,000 BIF ya bonus!</p>
-<form id="customerForm">
-<label>Izina Ryuzuye</label><input id="customerName" placeholder="Joctan Test">
-<label>Telefone</label><input id="customerPhone" placeholder="+257...">
-<label>Igihugu</label><select id="customerCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<label>Channel</label><select id="customerChannel"><option>Mobile Money</option><option>Lumitel</option><option>Econet</option></select>
-<button class="main-btn" type="submit">Iyandikishe</button>
-<div id="customerMessage" class="result"></div>
-</form>
+<div class="hero-right" id="send">
+<label>KUVA HEHE?</label>
+<select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
+<label>UJA HE?</label>
+<select id="toCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
+<label>NUMERO Y'UWAKIRA</label>
+<input id="receiverPhone" placeholder="+257..." />
+<label>AMOUNT (BIF)</label>
+<input id="amount" type="number" value="5000" />
+<label>UBURYO BWO KWISHURA</label>
+<select id="paymentMethod"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select>
+<button class="btn-send" onclick="sendMoney()">Ohereza →</button>
+<div id="sendMsg" class="msg"></div>
+<p style="text-align:center;font-size:13px;color:#888;margin-top:10px">Banza winjire muri Compte yawe imbere yo kurungika. Bonus 10,000 BIF ifunzwe - banza ugure Unités inshuro 2.</p>
+</div>
 </div>
 
-<div class="panel">
-<h3>🤝 Iyandikishe nk'Agent</h3><p>Ba Agent, fasha abantu, ronka 60% ya komisiyo kuri buri transaction!</p>
-<form id="agentForm">
-<label>Izina Ryuzuye</label><input id="agentName" placeholder="Agent Joctan">
-<label>Telefone</label><input id="agentPhone" placeholder="+257...">
-<label>Province</label><input id="agentProvince" placeholder="Bujumbura">
-<button class="main-btn" type="submit">Iyandikishe nk'Agent</button>
-<div id="agentMessage" class="result"></div>
-</form>
-<h4 style="margin-top:18px">Agents Bacu</h4>
-<div id="emptyAgents" style="color:#888;font-size:13px;margin-top:8px">Nta Agent</div>
-<table><thead><tr><th>Izina</th><th>Telefone</th><th>Province</th><th>%</th></tr></thead><tbody id="agentList"></tbody></table>
+<div class="cards">
+<div class="card" id="register">
+<h3>👤 Kwiyandikisha</h3>
+<p>Iyandikishe, tegereza Admin yemeze, wakire <b>10,000 BIF</b> ya Bonus! Bonus ifunzwe - ushobora kugura Unités gusa ubu, uyirungika nyuma yo kugura Unités inshuro 2.</p>
+<input id="regName" placeholder="Izina ryuzuye - ex: Joctan Nyandwi" />
+<input id="regPhone" placeholder="Numero - ex: +25779..." />
+<select id="regCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
+<select id="regChannel"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select>
+<button onclick="register()">Iyandikishe - Ronka Bonus 10,000 BIF</button>
+<div id="regMsg" class="msg"></div>
 </div>
+
+<div class="card">
+<h3>🤝 Iyandikishe nk'Agent</h3>
+<p>Ba Agent, fasha abantu, ronka <b>60% ya komisiyo</b> kuri buri transaction! Komisiyo 2% - Agent 60%, Super 20%, Platform 20%.</p>
+<input id="agentName" placeholder="Izina ryuzuye" />
+<input id="agentPhone" placeholder="Numero - ex: +25779..." />
+<input id="agentProvince" placeholder="Province - ex: Bujumbura" />
+<button class="yellow" onclick="registerAgent()">Iyandikishe nk'Agent</button>
+<div id="agentMsg" class="msg"></div>
+</div>
+
+<div class="card">
+<h3>📱 Gura Unités</h3>
+<p>Gura Unités za Lumitel / Econet vuba! <b>Bonus yawe ishobora gukoreshwa hano.</b> Gura Unités inshuro 2 kugira Bonus yawe ifunguke, ushobore kurungika!</p>
+<p>✅ Bonus 10,000 BIF<br>✅ Gura Unités 2x = Bonus irafunguka<br>✅ Komisiyo 2% gusa</p>
+<button onclick="window.location.href='client.html'">Injira Ugure Unités →</button>
+</div>
+</div>
+
+<div class="how">
+<h2>Uko Bikora - Intambwe 3 Zoroshe</h2>
+<div class="steps">
+<div class="step"><b>1️⃣</b><h4>Iyandikishe</h4><p>Iyandikishe ubuntu, ronka Bonus 10,000 BIF. Tegereza Admin yemeze.</p></div>
+<div class="step"><b>2️⃣</b><h4>Gura Unités 2x</h4><p>Gura Unités inshuro 2 kugira Bonus yawe ifunguke. Bonus ntishobora kurungikwa imbere y'aho.</p></div>
+<div class="step"><b>3️⃣</b><h4>Rungika</h4><p>Bonus imaze gufunguka, rungika amafaranga vuba! Komisiyo 2% gusa.</p></div>
 </div>
 </div>
 
 <footer>
-<b style="font-size:20px">💸 Send<span style="color:#FFD700">Money</span></b><br>
-<span style="opacity:0.8;font-size:13px">Burundi • Rungika • Kwizigira • Gutezimbere</span><br><br>
-<a href="/client.html">Mon Compte</a> • <a href="/admin-login.html">Admin</a> • <a href="/">Ahabanza</a><br>
-<small style="opacity:0.6">© 2026 SendMoney - Joctan Nyandwi</small>
+<p>© 2026 SendMoney - Joctan Nyandwi 🇧🇮</p>
+<p><a href="client.html">Mon Compte</a> | <a href="admin-login.html">Admin</a></p>
+<p style="font-size:13px;opacity:0.8;margin-top:10px">Bonus ni amafaranga ya Electronique muri SendMoney gusa - yo kwerekana ukuntu urubuga rukora.</p>
 </footer>
-<script src="/script.js"></script>
+
+<script>
+async function register(){
+  const full_name=document.getElementById('regName').value.trim();
+  const phone=document.getElementById('regPhone').value.trim();
+  const country=document.getElementById('regCountry').value;
+  const channel=document.getElementById('regChannel').value;
+  const m=document.getElementById('regMsg');
+  if(!full_name||!phone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
+  try{
+    const r=await fetch('/api/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,country,channel})});
+    const d=await r.json();
+    if(r.ok){ m.className='msg success'; m.textContent='✅ '+d.message; }
+    else{ m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - gerageza nshasha'; }
+}
+async function registerAgent(){
+  const full_name=document.getElementById('agentName').value.trim();
+  const phone=document.getElementById('agentPhone').value.trim();
+  const province=document.getElementById('agentProvince').value.trim();
+  const m=document.getElementById('agentMsg');
+  if(!full_name||!phone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
+  try{
+    const r=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,province})});
+    const d=await r.json();
+    if(r.ok){ m.className='msg success'; m.textContent='✅ Agent yanditswe!'; }
+    else{ m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+}
+async function sendMoney(){
+  const m=document.getElementById('sendMsg');
+  const fromCountry=document.getElementById('fromCountry').value;
+  const toCountry=document.getElementById('toCountry').value;
+  const receiverPhone=document.getElementById('receiverPhone').value.trim();
+  const amount=document.getElementById('amount').value;
+  const paymentMethod=document.getElementById('paymentMethod').value;
+  if(!receiverPhone||!amount){ m.className='msg error'; m.textContent='Uzuza numero n\'amount!'; return; }
+  // Saba kwinjira ubanza - ITEGEKO
+  m.className='msg error';
+  m.textContent='Banza winjire muri Compte yawe imbere yo kurungika! Kanda Injira.';
+  return;
+}
+</script>
 </body>
 </html>
