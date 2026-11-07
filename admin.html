@@ -4,89 +4,162 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin - SendMoney</title>
-<link rel="stylesheet" href="style.css">
 <style>
-.admin-header{background:#083b70;color:white;padding:20px 7%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.admin-card{background:white;padding:20px;border-radius:14px;margin:15px 0;box-shadow:0 5px 18px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.status-pending{background:#fff3cd;color:#856404;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
-.status-approved{background:#d4edda;color:#155724;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
-.status-rejected{background:#f8d7da;color:#721c24;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
-.btn-approve{background:#28a745;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold}
-.btn-reject{background:#dc3545;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin:20px 0}
-.stat-box{background:white;padding:20px;border-radius:14px;text-align:center;box-shadow:0 5px 18px rgba(0,0,0,0.06)}
-.stat-box h3{font-size:32px;color:#083b70;margin:0}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#f5f5f5;padding:20px}
+header{background:#0B8A3E;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:24px}
+header a{color:#FFD700;text-decoration:none;font-weight:700}
+.stats{display:flex;gap:15px;margin:20px 0;flex-wrap:wrap}
+.stat{background:#fff;padding:20px;border-radius:12px;flex:1;min-width:160px;box-shadow:0 2px 10px rgba(0,0,0,0.08);text-align:center}
+.stat b{font-size:28px;color:#0B8A3E;display:block}
+.stat span{color:#666;font-size:14px}
+.section{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
+.section h2{color:#0B8A3E;margin-bottom:15px;font-size:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.row input{flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;min-width:150px}
+button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px}
+.btn-green{background:#0B8A3E;color:#fff}
+.btn-yellow{background:#FFD700;color:#000}
+.btn-red{background:#f44336;color:#fff}
+.btn-orange{background:#ff9800;color:#fff}
+.btn-blue{background:#0B4D8C;color:#fff}
+.item{border:1px solid #eee;padding:15px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.item b{font-size:15px}
+.item span{color:#666;font-size:13px}
+.badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge.pending{background:#fff3cd;color:#856404}
+.badge.approved{background:#d4edda;color:#155724}
+.badge.blocked{background:#f8d7da;color:#721c24}
+.badge.rejected{background:#f8d7da;color:#721c24}
 </style>
 </head>
 <body>
-<script>
-// RINDA ADMIN - Niba nta auth, subira muri login
-const auth = localStorage.getItem('admin_auth');
-if(!auth){ location.href='/admin-login.html'; }
-fetch('/api/admin/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:auth})}).then(r=>{ if(!r.ok){ localStorage.removeItem('admin_auth'); location.href='/admin-login.html'; }});
-</script>
-
-<div class="admin-header">
-<div class="logo">Send<span>Money</span> - ADMIN</div>
-<nav>
-<a href="/" style="color:white;text-decoration:none;">Ahabanza</a> | 
-<a href="/client.html" style="color:white;text-decoration:none;">Client</a> | 
-<a href="#" onclick="localStorage.removeItem('admin_auth');location.href='/admin-login.html'" style="color:white;">Sohoka</a>
-</nav>
+<header><h1>💸 SendMoney - Admin Dashboard</h1><a href="/">← Ahabanza</a></header>
+<div class="stats">
+<div class="stat"><b id="countCustomers">0</b><span>Abakiriya</span></div>
+<div class="stat"><b id="countPending">0</b><span>Bategereje</span></div>
+<div class="stat"><b id="countAgents">0</b><span>Agents</span></div>
+<div class="stat"><b id="countTransactions">0</b><span>Transactions</span></div>
+<div class="stat"><b id="platformBalance">0 BIF</b><span>Platform (Wewe 20%)</span></div>
 </div>
 
 <div class="section">
-<h2>Dashboard ya Admin</h2>
-<p class="subtitle">Kwemeza abakiriya, kuraba transactions na commissions 60/20/20</p>
-
-<div class="stats">
-<div class="stat-box"><h3 id="totalCustomers">0</h3><p>Abakiriya</p></div>
-<div class="stat-box"><h3 id="pendingCustomers">0</h3><p>Bategereje</p></div>
-<div class="stat-box"><h3 id="totalAgents">0</h3><p>Agents</p></div>
-<div class="stat-box"><h3 id="totalTransactions">0</h3><p>Transactions</p></div>
+<h2>💰 Platform - Amafaranga Yawe (20%)</h2>
+<p id="platformInfo">Raba balance yawe...</p>
+<div class="row"><input id="platformWithdrawAmount" type="number" placeholder="Amount yo kurotira - Minimum 5000 BIF"><button class="btn-green" onclick="withdrawPlatform()">Saba Kurotira - Platform</button></div>
 </div>
 
-<h3>Abakiriya</h3>
-<div id="customersList">Turiko turabirondera...</div>
+<div class="section">
+<h2>👤 Iyandikishe Super Agent</h2>
+<div class="row"><input id="superName" placeholder="Izina ryuzuye"><input id="superPhone" placeholder="Numero"><input id="superProvince" placeholder="Province"><button class="btn-green" onclick="addSuperAgent()">Iyandikishe Super Agent</button></div>
+<div id="superList"></div>
+</div>
 
-<h3 style="margin-top:40px;">Transactions</h3>
-<div id="transactionsList">Turiko...</div>
+<div class="section">
+<h2>💸 Demandes zo Kurotira - Agents / Super / Platform</h2>
+<div id="withdrawList">Gutegereza...</div>
+</div>
 
-<h3 style="margin-top:40px;">Agents</h3>
-<div id="agentsList">Turiko...</div>
+<div class="section">
+<h2>👥 Abakiriya</h2>
+<div id="customerList">Gutegereza...</div>
+</div>
+
+<div class="section">
+<h2>🤝 Agents - Komisiyo 60%</h2>
+<div id="agentList">Gutegereza...</div>
+</div>
+
+<div class="section">
+<h2>📋 Transactions</h2>
+<div id="txList">Gutegereza...</div>
 </div>
 
 <script>
 async function loadAll(){
   try{
-    const resC=await fetch('/api/customers'); const dataC=await resC.json(); const customers=dataC.customers||[];
-    document.getElementById('totalCustomers').textContent=customers.length;
-    document.getElementById('pendingCustomers').textContent=customers.filter(c=>c.status==='pending').length;
-    document.getElementById('customersList').innerHTML=customers.map(c=>`
-      <div class="admin-card">
-        <div><strong>${c.full_name}</strong> - ${c.phone}<br><small>${c.country} | ${c.channel} | ID:${c.id}</small></div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="status-${c.status}">${c.status.toUpperCase()}</span>
-          ${c.status==='pending'?`<button class="btn-approve" onclick="updateStatus(${c.id},'approved')">Emeza</button><button class="btn-reject" onclick="updateStatus(${c.id},'rejected')">Hakana</button>`:''}
-        </div>
-      </div>`).join('')||'<div class="panel">Nta mukiriya</div>';
+    const c=await fetch('/api/customers').then(r=>r.json());
+    const customers=c.customers||[];
+    document.getElementById('countCustomers').textContent=customers.length;
+    document.getElementById('countPending').textContent=customers.filter(x=>x.status==='pending').length;
+    let html='';
+    customers.forEach(x=>{
+      html+=`<div class="item"><div><b>${x.full_name||x.name}</b> - ${x.phone} - ${x.country||''} | ${x.channel||''} | Balance: ${x.balance||0} BIF | Bonus: ${x.bonus_locked?'🔒 Ifunzwe':'✅ Ifungutse'} | Airtime: ${x.airtime_count||0}/2<br><span class="badge ${x.status}">${x.status.toUpperCase()}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-green" onclick="setStatus(${x.id},'approved')">Emeza</button><button class="btn-orange" onclick="setStatus(${x.id},'pending')">Hakana</button><button class="btn-orange" onclick="blockCustomer(${x.id})">🚫 Hagarika</button><button class="btn-green" onclick="unblockCustomer(${x.id})">✅ Unamura</button><button class="btn-red" onclick="deleteCustomer(${x.id},'${(x.full_name||x.name).replace(/'/g,'')}')">🗑️ Futa</button></div></div>`;
+    });
+    document.getElementById('customerList').innerHTML=html||'Nta mukiriya';
 
-    const resA=await fetch('/api/agents'); const dataA=await resA.json(); 
-    document.getElementById('totalAgents').textContent=(dataA.agents||[]).length;
-    document.getElementById('agentsList').innerHTML=(dataA.agents||[]).map(a=>`
-      <div class="admin-card"><div><strong>${a.full_name}</strong> - ${a.phone}<br><small>${a.province} | ${a.commission_rate}%</small></div></div>`).join('')||'<div class="panel">Nta Agent</div>';
+    const a=await fetch('/api/agents').then(r=>r.json());
+    const agents=a.agents||[];
+    document.getElementById('countAgents').textContent=agents.length;
+    let ah='';
+    agents.forEach(x=>{
+      ah+=`<div class="item"><div><b>${x.full_name}</b> - ${x.phone} - ${x.province||''}<br>Komisiyo: <b>${x.wallet_balance||0} BIF</b> | Total: ${x.total_earned||0} BIF</div><div style="display:flex;gap:6px"><input id="w-${x.id}" type="number" placeholder="Amount - Min 5000" style="width:130px;padding:8px;border:1px solid #ddd;border-radius:8px"><button class="btn-yellow" onclick="agentWithdraw(${x.id})">Saba Kurotira</button></div></div>`;
+    });
+    document.getElementById('agentList').innerHTML=ah||'Nta Agent';
 
-    const resT=await fetch('/api/transactions'); const dataT=await resT.json(); 
-    document.getElementById('totalTransactions').textContent=(dataT.transactions||[]).length;
-    document.getElementById('transactionsList').innerHTML=(dataT.transactions||[]).map(t=>`
-      <div class="admin-card">
-        <div><strong>${t.code}</strong> - ${t.from_country} → ${t.to_country}<br><small>${t.receiver_phone} | ${Number(t.amount).toLocaleString()} BIF | Fee: ${Number(t.fee).toLocaleString()}</small></div>
-        <div><small>Agent 60%: ${Number(t.agent_share).toLocaleString()}<br>Super 20%: ${Number(t.super_share).toLocaleString()}</small></div>
-      </div>`).join('')||'<div class="panel">Nta transaction</div>';
-  }catch(e){ console.error(e); }
+    const t=await fetch('/api/transactions').then(r=>r.json());
+    const txs=t.transactions||[];
+    document.getElementById('countTransactions').textContent=txs.length;
+    let th='';
+    txs.slice(0,20).forEach(x=>{
+      th+=`<div class="item"><div><b>${x.code||''}</b> - ${x.from_country||''} → ${x.to_country||''} - ${x.amount||0} BIF | Fee: ${x.fee||0} | Agent 60%: ${x.agent_share||0} | Super 20%: ${x.super_share||0} | Platform 20%: ${x.platform_share||0}<br><span>${x.receiver_phone||x.to_phone||''} | ${x.type||''}</span></div></div>`;
+    });
+    document.getElementById('txList').innerHTML=th||'Nta transaction';
+
+    const p=await fetch('/api/platform/balance').then(r=>r.json());
+    if(p.wallet){ document.getElementById('platformBalance').textContent=(p.wallet.balance||0)+' BIF'; document.getElementById('platformInfo').textContent=`Balance: ${p.wallet.balance||0} BIF | Total Earned: ${p.wallet.total_earned||0} BIF | Total Withdrawn: ${p.wallet.total_withdrawn||0} BIF`; }
+
+    const s=await fetch('/api/super-agents').then(r=>r.json());
+    const supers=s.super_agents||[];
+    let sh='';
+    supers.forEach(x=>{
+      sh+=`<div class="item"><div><b>${x.full_name}</b> - ${x.phone} - ${x.province||''}<br>Komisiyo: <b>${x.balance||0} BIF</b> | Total: ${x.total_earned||0} BIF</div><div style="display:flex;gap:6px"><input id="sw-${x.id}" type="number" placeholder="Amount - Min 5000" style="width:130px;padding:8px;border:1px solid #ddd;border-radius:8px"><button class="btn-yellow" onclick="superWithdraw(${x.id})">Saba Kurotira</button></div></div>`;
+    });
+    document.getElementById('superList').innerHTML=sh||'Nta Super Agent';
+
+    const wd=await fetch('/api/withdrawals').then(r=>r.json());
+    const wds=wd.withdrawals||[];
+    let wh='';
+    wds.forEach(x=>{
+      wh+=`<div class="item"><div><b>${x.user_name}</b> (${x.user_type}) - ${x.phone} - <b>${x.amount} BIF</b> - ${x.method}<br><span class="badge ${x.status}">${x.status.toUpperCase()}</span> - ${new Date(x.created_at).toLocaleString()}</div><div style="display:flex;gap:6px">${x.status==='pending'?`<button class="btn-green" onclick="approveWithdraw(${x.id})">✅ Emeza - Wishure</button><button class="btn-red" onclick="rejectWithdraw(${x.id})">❌ Hakana</button>`:''}</div></div>`;
+    });
+    document.getElementById('withdrawList').innerHTML=wh||'Nta demande';
+  }catch(e){ console.log(e); }
 }
-async function updateStatus(id,status){ if(!confirm('Uremeza '+status+'?')) return; await fetch(`/api/customers/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}); loadAll(); }
-loadAll(); setInterval(loadAll,5000);
+async function setStatus(id,status){ await fetch('/api/customers/'+id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}); loadAll(); }
+async function blockCustomer(id){ if(!confirm('Urahamya ko ushaka guhagarika uyu mukiriya?')) return; await fetch('/api/admin/block/'+id,{method:'POST'}); alert('Umukiriya yahagaritswe!'); loadAll(); }
+async function unblockCustomer(id){ await fetch('/api/admin/unblock/'+id,{method:'POST'}); alert('Umukiriya yunamuwe!'); loadAll(); }
+async function deleteCustomer(id,name){ if(!confirm('Urahamya ko ushaka GUfuta burundu '+name+'? Iki gikorwa ntigishobora kugaruka!')) return; await fetch('/api/customers/'+id,{method:'DELETE'}); alert('Umukiriya yafutwe burundu!'); loadAll(); }
+async function addSuperAgent(){
+  const full_name=document.getElementById('superName').value.trim();
+  const phone=document.getElementById('superPhone').value.trim();
+  const province=document.getElementById('superProvince').value.trim();
+  if(!full_name||!phone) return alert('Uzuza izina na telefone');
+  const r=await fetch('/api/super-agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,province})});
+  const d=await r.json(); alert(d.message); loadAll();
+}
+async function agentWithdraw(id){
+  const amount=document.getElementById('w-'+id).value;
+  if(!amount) return alert('Uzuza amount');
+  const r=await fetch('/api/withdraw/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:id,amount})});
+  const d=await r.json(); alert(d.message); loadAll();
+}
+async function superWithdraw(id){
+  const amount=document.getElementById('sw-'+id).value;
+  if(!amount) return alert('Uzuza amount');
+  const r=await fetch('/api/withdraw/super',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({super_id:id,amount})});
+  const d=await r.json(); alert(d.message); loadAll();
+}
+async function withdrawPlatform(){
+  const amount=document.getElementById('platformWithdrawAmount').value;
+  if(!amount) return alert('Uzuza amount');
+  const r=await fetch('/api/withdraw/platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount})});
+  const d=await r.json(); alert(d.message); loadAll();
+}
+async function approveWithdraw(id){ await fetch('/api/withdrawals/'+id+'/approve',{method:'POST'}); alert('Kurotira kwemejwe! Wishure uwo muntu na Mobile Money / Cash!'); loadAll(); }
+async function rejectWithdraw(id){ await fetch('/api/withdrawals/'+id+'/reject',{method:'POST'}); alert('Demande yahakanywe'); loadAll(); }
+loadAll();
 </script>
 </body>
 </html>
