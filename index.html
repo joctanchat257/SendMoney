@@ -1,9 +1,110 @@
-<!DOCTYPE html><html lang="rn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>SendMoney</title><link rel="stylesheet" href="style.css"></head><body>
-<header><div class="logo">Send<span>Money</span></div><nav><a href="#home">Ahabanza</a><a href="#register">Iyandikishe</a><a href="#send">Ohereza amahera</a><a href="#agents">Agents</a><a href="#commission">Komisiyo</a><a href="/admin-login.html" style="background:#13b6d5;padding:6px 14px;border-radius:20px;">Admin</a></nav></header>
-<section class="hero" id="home"><h1>Murakaza neza kuri SendMoney</h1><p>Ohereza kandi wakire amahera aho uri hose.</p><a href="#register" class="main-btn">Tangira</a></section>
-<main><section class="section" id="register"><h2>Kwiyandikisha</h2><form id="customerForm" class="panel"><label>Izina</label><input id="customerName" required><label>Telefone</label><input id="customerPhone" required><label>Igihugu</label><select id="customerCountry" required><option>Burundi</option><option>Rwanda</option><option>DR Congo</option><option>Tanzania</option><option>Kenya</option></select><label>Channel</label><select id="customerChannel" required><option>Mobile Money</option><option>Bank</option><option>Agent</option></select><button class="main-btn full">Iyandikishe</button><div id="customerMessage" class="result"></div></form></section>
-<section class="section" id="send"><h2>Ohereza amahera</h2><form id="transferForm" class="panel"><label>From</label><select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>DR Congo</option><option>Tanzania</option><option>Kenya</option></select><label>To</label><select id="toCountry"><option>Rwanda</option><option>Burundi</option><option>DR Congo</option><option>Tanzania</option><option>Kenya</option></select><label>Receiver Phone</label><input id="receiverPhone" required><label>Amount</label><input id="amount" type="number" required><label>Method</label><select id="paymentMethod"><option>Mobile Money</option><option>Bank</option><option>Agent</option></select><button class="main-btn full">Ohereza</button></form><div id="transferResult" class="result"></div></section>
-<section class="section" id="agents"><h2>Agents</h2><form id="agentForm" class="panel"><label>Izina</label><input id="agentName" required><label>Telefone</label><input id="agentPhone" required><label>Intara</label><input id="agentProvince" required><button class="main-btn full">Injiza Agent</button><div id="agentMessage" class="result"></div></form><div class="panel"><table><thead><tr><th>Izina</th><th>Telefone</th><th>Intara</th></tr></thead><tbody id="agentList"></tbody></table><p id="emptyAgents">Nta Agent</p></div></section>
-<section class="section" id="commission"><h2>Komisiyo</h2><div class="notice">60% Agent | 20% Super | 20% SendMoney</div></section></main>
-<footer><p>© 2026 SendMoney | <a href="/admin-login.html" style="color:#13b6d5;">Admin</a> | <a href="/client.html" style="color:#13b6d5;">Mon Compte</a></p></footer>
-<script src="script.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="rn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SendMoney - Rungika Amafaranga Vuba</title>
+<link rel="stylesheet" href="style.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#F6F9F2;color:#1A1A1A}
+header{background:white;padding:16px 6%;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,0.08);position:sticky;top:0;z-index:10}
+.logo{font-size:26px;font-weight:900;color:#0B8A3E}.logo span{color:#FFB800}
+nav a{margin-left:18px;text-decoration:none;color:#083b70;font-weight:700;font-size:14px}
+.hero{background:linear-gradient(120deg,#0B8A3E,#0A6B2E);color:white;padding:50px 6%;display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.hero h1{font-size:38px;line-height:1.2;margin-bottom:12px}.hero h1 span{color:#FFD700}
+.hero p{font-size:17px;opacity:0.92;margin-bottom:20px;max-width:520px}
+.btn-yellow{background:#FFD700;color:#0B3B1E;padding:14px 28px;border-radius:999px;font-weight:900;border:none;cursor:pointer;font-size:16px;box-shadow:0 6px 20px rgba(0,0,0,0.2)}
+.btn-white{background:white;color:#0B8A3E;padding:14px 24px;border-radius:999px;font-weight:800;border:2px solid white;cursor:pointer;margin-left:10px}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:22px}
+.stat{background:rgba(255,255,255,0.18);padding:14px 20px;border-radius:14px;backdrop-filter:blur(6px)}
+.stat b{font-size:22px;display:block}.stat small{opacity:0.85}
+.section{padding:32px 6%;max-width:1100px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:18px}
+.panel{background:white;padding:24px;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,0.07)}
+.panel h3{color:#0B8A3E;margin-bottom:6px}
+.panel p{color:#666;font-size:14px;margin-bottom:14px}
+label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
+input,select{width:100%;padding:13px;border:1.5px solid #E1E8E0;border-radius:12px;font-size:15px;outline:none}
+input:focus,select:focus{border-color:#0B8A3E}
+.main-btn{background:#0B8A3E;color:white;padding:14px;border:none;border-radius:12px;width:100%;font-weight:800;font-size:16px;cursor:pointer;margin-top:16px}
+.main-btn:hover{background:#0A6B2E}
+.result{padding:12px;border-radius:12px;margin-top:12px;display:none;font-size:14px}
+.result.show{display:block}.result.success{background:#D4EDDA;color:#155724}.result.error{background:#F8D7DA;color:#721C24}
+.badge{background:#FFF3CD;color:#856404;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}th{text-align:left;padding:10px;background:#F0F7F0}td{padding:10px;border-bottom:1px solid #eee}
+footer{background:#0A2E1A;color:white;padding:24px 6%;text-align:center;margin-top:30px}
+footer a{color:#FFD700;text-decoration:none;font-weight:700}
+@media(max-width:640px){.hero h1{font-size:30px}nav a{margin-left:10px}}
+</style>
+</head>
+<body>
+<header><div class="logo">💸 Send<span>Money</span></div><nav><a href="/">Ahabanza</a><a href="/client.html">Mon Compte</a><a href="/admin-login.html">Admin</a></nav></header>
+
+<div class="hero">
+<div style="flex:1;min-width:280px">
+<div class="badge">🇧🇮 Burundi • Rwanda • RDC • Tanzanie</div>
+<h1>Rungika Amafaranga <span>Vuba, Vyizigiro.</span></h1>
+<p>SendMoney ni uburyo bworoshye bwo kurungika amafaranga, kugura Unités, no gukorana na Agents mu Burundi hose. Komisiyo 2% gusa - 60% Agent, 20% Super, 20% Platform.</p>
+<button class="btn-yellow" onclick="document.getElementById('registerBox').scrollIntoView({behavior:'smooth'})">✨ Iyandikishe Ubu - Ubuntu</button>
+<button class="btn-white" onclick="location.href='/client.html'">Injira →</button>
+<div class="stats">
+<div class="stat"><b>500,000 BIF</b><small>Bonus yo Kwiyandikisha</small></div>
+<div class="stat"><b>2% gusa</b><small>Komisiyo</small></div>
+<div class="stat"><b>24/7</b><small>Irakora Amasaha Yose</small></div>
+</div>
+</div>
+<div style="flex:0.9;min-width:280px;background:white;color:#1A1A1A;padding:22px;border-radius:20px;box-shadow:0 12px 30px rgba(0,0,0,0.25)">
+<h3 style="color:#0B8A3E">💸 Ohereza Ubu</h3>
+<p style="font-size:13px;color:#666;margin:6px 0 12px">Uzuza, rungika, wakira Code SMxxxxxx</p>
+<form id="transferForm">
+<label>Uva he?</label><select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
+<label>Uja he?</label><select id="toCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
+<label>Numero y'Uwakira</label><input id="receiverPhone" placeholder="+257...">
+<label>Amount (BIF)</label><input id="amount" type="number" placeholder="5000">
+<label>Uburyo bwo Kwishura</label><select id="paymentMethod"><option>Mobile Money</option><option>Lumitel</option><option>Econet</option><option>Cash</option></select>
+<button class="main-btn" type="submit">Ohereza →</button>
+<div id="transferResult" class="result"></div>
+</form>
+</div>
+</div>
+
+<div class="section">
+<div class="grid">
+<div class="panel" id="registerBox">
+<h3>👤 Kwiyandikisha</h3><p>Iyandikishe, tegareza Admin yemeze, wakira 500,000 BIF ya bonus!</p>
+<form id="customerForm">
+<label>Izina Ryuzuye</label><input id="customerName" placeholder="Joctan Test">
+<label>Telefone</label><input id="customerPhone" placeholder="+257...">
+<label>Igihugu</label><select id="customerCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
+<label>Channel</label><select id="customerChannel"><option>Mobile Money</option><option>Lumitel</option><option>Econet</option></select>
+<button class="main-btn" type="submit">Iyandikishe</button>
+<div id="customerMessage" class="result"></div>
+</form>
+</div>
+
+<div class="panel">
+<h3>🤝 Iyandikishe nk'Agent</h3><p>Ba Agent, fasha abantu, ronka 60% ya komisiyo kuri buri transaction!</p>
+<form id="agentForm">
+<label>Izina Ryuzuye</label><input id="agentName" placeholder="Agent Joctan">
+<label>Telefone</label><input id="agentPhone" placeholder="+257...">
+<label>Province</label><input id="agentProvince" placeholder="Bujumbura">
+<button class="main-btn" type="submit">Iyandikishe nk'Agent</button>
+<div id="agentMessage" class="result"></div>
+</form>
+<h4 style="margin-top:18px">Agents Bacu</h4>
+<div id="emptyAgents" style="color:#888;font-size:13px;margin-top:8px">Nta Agent</div>
+<table><thead><tr><th>Izina</th><th>Telefone</th><th>Province</th><th>%</th></tr></thead><tbody id="agentList"></tbody></table>
+</div>
+</div>
+</div>
+
+<footer>
+<b style="font-size:20px">💸 Send<span style="color:#FFD700">Money</span></b><br>
+<span style="opacity:0.8;font-size:13px">Burundi • Rungika • Kwizigira • Gutezimbere</span><br><br>
+<a href="/client.html">Mon Compte</a> • <a href="/admin-login.html">Admin</a> • <a href="/">Ahabanza</a><br>
+<small style="opacity:0.6">© 2026 SendMoney - Joctan Nyandwi</small>
+</footer>
+<script src="/script.js"></script>
+</body>
+</html>
