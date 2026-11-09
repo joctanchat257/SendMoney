@@ -1,113 +1,39 @@
 <!DOCTYPE html>
 <html lang="rn">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SendMoney - Rungika Amafaranga Vuba, Vyizigiro</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
-body{background:#f5f5f5}
-header{background:#fff;padding:15px 40px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.1);position:sticky;top:0;z-index:100}
-.logo{font-size:28px;font-weight:900;color:#0B8A3E}.logo span{color:#FFD700;-webkit-text-stroke:1px #0B8A3E}
-nav a{margin-left:25px;text-decoration:none;color:#0B4D8C;font-weight:700;font-size:16px}
-.hero{background:#0B8A3E;color:#fff;display:flex;padding:40px;gap:30px;align-items:flex-start}
-.hero-left{flex:1;text-align:center;padding-top:30px}
-.badge{background:#FFF8DC;color:#0B8A3E;padding:8px 20px;border-radius:20px;font-weight:700;font-size:14px;display:inline-block;margin-bottom:20px}
-.hero-left h1{font-size:48px;line-height:1.2;margin-bottom:20px}.hero-left h1 span{color:#FFD700}
-.hero-left p{font-size:18px;line-height:1.6;opacity:0.95;margin-bottom:25px}
-.btn-yellow{background:#FFD700;color:#000;padding:14px 28px;border:none;border-radius:30px;font-weight:800;font-size:16px;cursor:pointer}
-.btn-white{background:#fff;color:#0B8A3E;padding:14px 28px;border:none;border-radius:30px;font-weight:800;font-size:16px;cursor:pointer;margin-left:10px}
-.stats{display:flex;gap:15px;justify-content:center;margin-top:30px}
-.stat{background:rgba(255,255,255,0.15);padding:20px;border-radius:15px;min-width:140px}.stat b{font-size:26px;display:block}.stat span{font-size:14px;opacity:0.9}
-.hero-right{flex:1;background:#fff;color:#333;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,0.2)}
-.hero-right label{display:block;font-weight:700;margin:15px 0 8px;text-align:center;font-size:14px}
-.hero-right input,.hero-right select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;font-size:16px}
-.btn-send{background:#0B8A3E;color:#fff;width:100%;padding:15px;border:none;border-radius:10px;font-weight:800;font-size:18px;cursor:pointer;margin-top:20px}
-.msg{margin-top:15px;padding:12px;border-radius:10px;text-align:center;font-size:14px;display:none}
-.msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}
-.cards{display:flex;gap:20px;padding:40px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
-.card{flex:1;background:#fff;border-radius:15px;padding:25px;box-shadow:0 2px 15px rgba(0,0,0,0.08);min-width:280px}
-.card h3{color:#0B8A3E;margin-bottom:12px;font-size:20px}.card p{line-height:1.6;color:#555;margin-bottom:15px}
-.card input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px;font-size:15px}
-.card select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px}
-.card button{background:#0B8A3E;color:#fff;width:100%;padding:13px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:16px}
-.card button.yellow{background:#FFD700;color:#000}
-.how{max-width:1100px;margin:0 auto;padding:0 40px 40px}.how h2{text-align:center;margin-bottom:25px;font-size:28px;color:#0B8A3E}
-.steps{display:flex;gap:20px;flex-wrap:wrap}.step{flex:1;background:#fff;padding:25px;border-radius:15px;text-align:center;min-width:220px}.step b{font-size:30px}.step h4{margin:10px 0}.step p{color:#666;line-height:1.5}
-footer{background:#0B4D8C;color:#fff;text-align:center;padding:25px;margin-top:20px}footer a{color:#FFD700;text-decoration:none}
-@media(max-width:800px){.hero{flex-direction:column;padding:20px}header{padding:15px 20px}nav a{margin-left:12px;font-size:14px}.hero-left h1{font-size:32px}}
-</style>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>SendMoney - Rungika Amafaranga Vuba, Vyizigiro</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}body{background:#f5f5f5}header{background:#fff;padding:15px 40px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.1);position:sticky;top:0;z-index:100}.logo{font-size:28px;font-weight:900;color:#0B8A3E}.logo span{color:#FFD700}nav a{margin-left:25px;text-decoration:none;color:#0B4D8C;font-weight:700;font-size:16px}.hero{background:#0B8A3E;color:#fff;display:flex;padding:40px;gap:30px;align-items:flex-start}.hero-left{flex:1;text-align:center;padding-top:30px}.badge{background:#FFF8DC;color:#0B8A3E;padding:8px 20px;border-radius:20px;font-weight:700;font-size:14px;display:inline-block;margin-bottom:20px}.hero-left h1{font-size:48px;line-height:1.2;margin-bottom:20px}.hero-left h1 span{color:#FFD700}.hero-left p{font-size:18px;line-height:1.6;opacity:0.95;margin-bottom:25px}.btn-yellow{background:#FFD700;color:#000;padding:14px 28px;border:none;border-radius:30px;font-weight:800;font-size:16px;cursor:pointer}.btn-white{background:#fff;color:#0B8A3E;padding:14px 28px;border:none;border-radius:30px;font-weight:800;font-size:16px;cursor:pointer;margin-left:10px}.stats{display:flex;gap:15px;justify-content:center;margin-top:30px}.stat{background:rgba(255,255,255,0.15);padding:20px;border-radius:15px;min-width:140px}.stat b{font-size:26px;display:block}.stat span{font-size:14px;opacity:0.9}.hero-right{flex:1;background:#fff;color:#333;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,0.2)}.hero-right label{display:block;font-weight:700;margin:15px 0 8px;text-align:center;font-size:14px}.hero-right input,.hero-right select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;font-size:16px}.btn-send{background:#0B8A3E;color:#fff;width:100%;padding:15px;border:none;border-radius:10px;font-weight:800;font-size:18px;cursor:pointer;margin-top:20px}.msg{margin-top:15px;padding:12px;border-radius:10px;text-align:center;font-size:14px;display:none}.msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}.cards{display:flex;gap:20px;padding:40px;max-width:1100px;margin:0 auto;flex-wrap:wrap}.card{flex:1;background:#fff;border-radius:15px;padding:25px;box-shadow:0 2px 15px rgba(0,0,0,0.08);min-width:280px}.card h3{color:#0B8A3E;margin-bottom:12px;font-size:20px}.card p{line-height:1.6;color:#555;margin-bottom:15px}.card input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px;font-size:15px}.card select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px}.card button{background:#0B8A3E;color:#fff;width:100%;padding:13px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:16px}.card button.yellow{background:#FFD700;color:#000}.how{max-width:1100px;margin:0 auto;padding:0 40px 40px}.how h2{text-align:center;margin-bottom:25px;font-size:28px;color:#0B8A3E}.steps{display:flex;gap:20px;flex-wrap:wrap}.step{flex:1;background:#fff;padding:25px;border-radius:15px;text-align:center;min-width:220px}.step b{font-size:30px}.step h4{margin:10px 0}.step p{color:#666;line-height:1.5}footer{background:#0B4D8C;color:#fff;text-align:center;padding:25px;margin-top:20px}footer a{color:#FFD700;text-decoration:none}@media(max-width:800px){.hero{flex-direction:column;padding:20px}header{padding:15px 20px}nav a{margin-left:12px;font-size:14px}.hero-left h1{font-size:32px}}</style>
 </head>
 <body>
 <header><div class="logo">💸 Send<span>Money</span></div><nav><a href="#send">Ahabanza</a><a href="client.html">Mon Compte</a><a href="admin-login.html">Admin</a></nav></header>
 <div class="hero">
-<div class="hero-left">
-<div class="badge">🇧🇮 Burundi • Rwanda • RDC • Tanzanie</div>
-<h1>Rungika Amafaranga <span>Vuba, Vyizigiro.</span></h1>
-<p>SendMoney ni uburyo bworoshye bwo kurungika amafaranga, kugura Unités, no gukorana na Agents mu Burundi hose. Komisiyo 2% gusa - 60% Agent, 20% Super, 20% Platform.</p>
-<button class="btn-yellow" onclick="document.getElementById('register').scrollIntoView({behavior:'smooth'})">💸 Iyandikishe Ubu - Ubuntu</button>
-<button class="btn-white" onclick="window.location.href='client.html'">Injira →</button>
-<div class="stats"><div class="stat"><b>10,000 BIF</b><span>Bonus yo Kwiyandikisha</span></div><div class="stat"><b>2% gusa</b><span>Komisiyo</span></div><div class="stat"><b>24/7</b><span>Irakora Amasaha Yose</span></div></div>
-</div>
-<div class="hero-right" id="send">
-<label>KUVA HEHE?</label><select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<label>UJA HE?</label><select id="toCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<label>NUMERO Y'UWAKIRA</label><input id="receiverPhone" placeholder="79123456 canke +25779123456" />
-<label>AMOUNT (BIF)</label><input id="amount" type="number" placeholder="Amount" />
-<label>UBURYO BWO KWISHURA</label><select id="paymentMethod"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select>
-<button class="btn-send" onclick="sendMoney()">Ohereza →</button>
-<div id="sendMsg" class="msg"></div>
-<p style="text-align:center;font-size:13px;color:#888;margin-top:10px">Banza winjire muri Compte yawe imbere yo kurungika. Bonus 10,000 BIF ifunzwe - banza ugure Unités inshuro 2. Site irashobora gutinda gato - Render Free irasinzira gato, tegereza gato.</p>
-</div>
+<div class="hero-left"><div class="badge">🇧🇮 Burundi • Rwanda • RDC • Tanzanie • Monde Entier</div><h1>Rungika Amafaranga <span>Vuba, Vyizigiro.</span></h1><p>SendMoney ni uburyo bworoshye bwo kurungika amafaranga, kugura Unités, no gukorana na Agents mu Burundi hose. Komisiyo 2% gusa - 60% Agent, 20% Super, 20% Platform. Password = Ibiharuro 4-6 gusa!</p><button class="btn-yellow" onclick="document.getElementById('register').scrollIntoView({behavior:'smooth'})">💸 Iyandikishe Ubu - Ubuntu</button><button class="btn-white" onclick="window.location.href='client.html'">Injira →</button><div class="stats"><div class="stat"><b>10,000 BIF</b><span>Bonus yo Kwiyandikisha</span></div><div class="stat"><b>2% gusa</b><span>Komisiyo</span></div><div class="stat"><b>24/7</b><span>Irakora Amasaha Yose</span></div></div></div>
+<div class="hero-right" id="send"><label>KUVA HEHE?</label><select id="fromCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select><label>UJA HE?</label><select id="toCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select><label>NUMERO Y'UWAKIRA</label><input id="receiverPhone" placeholder="79123456 canke +25779123456" /><label>AMOUNT (BIF)</label><input id="amount" type="number" placeholder="Amount" /><label>UBURYO BWO KWISHURA</label><select id="paymentMethod"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select><button class="btn-send" onclick="sendMoney()">Ohereza →</button><div id="sendMsg" class="msg"></div><p style="text-align:center;font-size:13px;color:#888;margin-top:10px">Banza winjire muri Compte yawe imbere yo kurungika. Bonus 10,000 BIF ifunzwe - banza ugure Unités inshuro 2.</p></div>
 </div>
 <div class="cards">
-<div class="card" id="register">
-<h3>👤 Kwiyandikisha - Client</h3>
-<p>Iyandikishe, tegereza Admin yemeze, wakire <b>10,000 BIF</b> ya Bonus! Bonus ifunzwe - ushobora kugura Unités gusa ubu.</p>
-<input id="regName" placeholder="Izina ryuzuye" />
-<input id="regPhone" placeholder="Numero - 79123456 canke +25779123456" />
-<input id="regPassword" type="password" placeholder="Password - nibura inyuguti 4" />
-<select id="regCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select>
-<select id="regChannel"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select>
-<button onclick="register()">Iyandikishe - Ronka Bonus 10,000 BIF</button>
-<div id="regMsg" class="msg"></div>
-</div>
-<div class="card">
-<h3>🤝 Iyandikishe nk'Agent</h3>
-<p>Ba Agent, fasha abantu, ronka <b>60% ya komisiyo</b> kuri buri transaction!</p>
-<input id="agentName" placeholder="Izina ryuzuye" />
-<input id="agentPhone" placeholder="Numero" />
-<input id="agentPassword" type="password" placeholder="Password - nibura inyuguti 4" />
-<input id="agentProvince" placeholder="Province" />
-<button class="yellow" onclick="registerAgent()">Iyandikishe nk'Agent</button>
-<div id="agentMsg" class="msg"></div>
-</div>
-<div class="card">
-<h3>📱 Gura Unités</h3>
-<p>Gura Unités za Lumitel / Econet vuba! <b>Bonus yawe ishobora gukoreshwa hano.</b> Gura Unités inshuro 2 kugira Bonus yawe ifunguke!</p>
-<p>✅ Bonus 10,000 BIF<br>✅ Gura Unités 2x = Bonus irafunguka<br>✅ Komisiyo 2% gusa</p>
-<button onclick="window.location.href='client.html'">Injira Ugure Unités →</button>
-</div>
+<div class="card" id="register"><h3>👤 Kwiyandikisha - Client</h3><p>Iyandikishe, tegereza Admin yemeze, wakire <b>10,000 BIF</b> ya Bonus! Password = Ibiharuro 4-6 gusa - Ex: 1234</p><input id="regName" placeholder="Izina ryuzuye" /><label style="font-weight:700;font-size:14px">IGIHUGU CAWE - Hitamo Code!</label><select id="countryCode"><option value="+257">🇧🇮 Burundi +257</option><option value="+250">🇷🇼 Rwanda +250</option><option value="+243">🇨🇩 RDC +243</option><option value="+255">🇹🇿 Tanzanie +255</option><option value="+254">🇰🇪 Kenya +254</option><option value="+256">🇺🇬 Ouganda +256</option><option value="+251">🇪🇹 Ethiopie +251</option><option value="+252">🇸🇴 Somalie +252</option><option value="+211">🇸🇸 Soudan du Sud +211</option><option value="+1">🇺🇸 USA / Canada +1</option><option value="+33">🇫🇷 France +33</option><option value="+32">🇧🇪 Belgique +32</option><option value="+41">🇨🇭 Suisse +41</option><option value="+49">🇩🇪 Allemagne +49</option><option value="+44">🇬🇧 Angleterre +44</option><option value="+39">🇮🇹 Italie +39</option><option value="+34">🇪🇸 Espagne +34</option><option value="+31">🇳🇱 Pays-Bas +31</option><option value="+46">🇸🇪 Suède +46</option><option value="+47">🇳🇴 Norvège +47</option><option value="+45">🇩🇰 Danemark +45</option><option value="+358">🇫🇮 Finlande +358</option><option value="+351">🇵🇹 Portugal +351</option><option value="+30">🇬🇷 Grèce +30</option><option value="+90">🇹🇷 Turquie +90</option><option value="+7">🇷🇺 Russie +7</option><option value="+86">🇨🇳 Chine +86</option><option value="+91">🇮🇳 Inde +91</option><option value="+81">🇯🇵 Japon +81</option><option value="+82">🇰🇷 Corée +82</option><option value="+61">🇦🇺 Australie +61</option><option value="+55">🇧🇷 Brésil +55</option><option value="+52">🇲🇽 Mexique +52</option><option value="+27">🇿🇦 Afrique du Sud +27</option><option value="+234">🇳🇬 Nigeria +234</option><option value="+233">🇬🇭 Ghana +233</option><option value="+225">🇨🇮 Côte d'Ivoire +225</option><option value="+221">🇸🇳 Sénégal +221</option><option value="+223">🇲🇱 Mali +223</option><option value="+226">🇧🇫 Burkina Faso +226</option><option value="+227">🇳🇪 Niger +227</option><option value="+228">🇹🇬 Togo +228</option><option value="+229">🇧🇯 Bénin +229</option><option value="+237">🇨🇲 Cameroun +237</option><option value="+241">🇬🇦 Gabon +241</option><option value="+242">🇨🇬 Congo +242</option><option value="+244">🇦🇴 Angola +244</option><option value="+245">🇬🇳 Guinée-Bissau +245</option><option value="+248">🇸🇨 Seychelles +248</option><option value="+249">🇸🇩 Soudan +249</option><option value="+20">🇪🇬 Egypte +20</option><option value="+212">🇲🇦 Maroc +212</option><option value="+213">🇩🇿 Algérie +213</option><option value="+216">🇹🇳 Tunisie +216</option><option value="+218">🇱🇾 Libye +218</option><option value="+971">🇦🇪 Dubai / UAE +971</option><option value="+966">🇸🇦 Arabie Saoudite +966</option><option value="+972">🇮🇱 Israël +972</option><option value="+962">🇯🇴 Jordanie +962</option><option value="+961">🇱🇧 Liban +961</option><option value="+965">🇰🇼 Koweït +965</option><option value="+974">🇶🇦 Qatar +974</option><option value="+973">🇧🇭 Bahreïn +973</option><option value="+968">🇴🇲 Oman +968</option><option value="+93">🇦🇫 Afghanistan +93</option><option value="+355">🇦🇱 Albanie +355</option><option value="+376">🇦🇩 Andorre +376</option><option value="+54">🇦🇷 Argentine +54</option><option value="+374">🇦🇲 Arménie +374</option><option value="+43">🇦🇹 Autriche +43</option><option value="+994">🇦🇿 Azerbaïdjan +994</option><option value="+880">🇧🇩 Bangladesh +880</option><option value="+375">🇧🇾 Biélorussie +375</option><option value="+501">🇧🇿 Belize +501</option><option value="+975">🇧🇹 Bhoutan +975</option><option value="+591">🇧🇴 Bolivie +591</option><option value="+387">🇧🇦 Bosnie +387</option><option value="+267">🇧🇼 Botswana +267</option><option value="+359">🇧🇬 Bulgarie +359</option><option value="+855">🇰🇭 Cambodge +855</option><option value="+56">🇨🇱 Chili +56</option><option value="+57">🇨🇴 Colombie +57</option><option value="+506">🇨🇷 Costa Rica +506</option><option value="+385">🇭🇷 Croatie +385</option><option value="+53">🇨🇺 Cuba +53</option><option value="+357">🇨🇾 Chypre +357</option><option value="+420">🇨🇿 Tchéquie +420</option><option value="+593">🇪🇨 Equateur +593</option><option value="+503">🇸🇻 Salvador +503</option><option value="+372">🇪🇪 Estonie +372</option><option value="+679">🇫🇯 Fidji +679</option><option value="+995">🇬🇪 Géorgie +995</option><option value="+502">🇬🇹 Guatemala +502</option><option value="+504">🇭🇳 Honduras +504</option><option value="+36">🇭🇺 Hongrie +36</option><option value="+354">🇮🇸 Islande +354</option><option value="+62">🇮🇩 Indonésie +62</option><option value="+98">🇮🇷 Iran +98</option><option value="+964">🇮🇶 Irak +964</option><option value="+353">🇮🇪 Irlande +353</option><option value="+58">🇻🇪 Venezuela +58</option><option value="+84">🇻🇳 Vietnam +84</option><option value="+967">🇾🇪 Yémen +967</option><option value="+260">🇿🇲 Zambie +260</option><option value="+263">🇿🇼 Zimbabwe +263</option><option value="+236">🇨🇫 Centrafrique +236</option><option value="+235">🇹🇩 Tchad +235</option><option value="+231">🇱🇷 Liberia +231</option><option value="+232">🇸🇱 Sierra Leone +232</option><option value="+230">🇲🇺 Maurice +230</option><option value="+261">🇲🇬 Madagascar +261</option><option value="+265">🇲🇼 Malawi +265</option><option value="+60">🇲🇾 Malaisie +60</option><option value="+960">🇲🇻 Maldives +960</option><option value="+95">🇲🇲 Myanmar +95</option><option value="+977">🇳🇵 Népal +977</option><option value="+64">🇳🇿 Nouvelle-Zélande +64</option><option value="+505">🇳🇮 Nicaragua +505</option><option value="+507">🇵🇦 Panama +507</option><option value="+595">🇵🇾 Paraguay +595</option><option value="+51">🇵🇪 Pérou +51</option><option value="+63">🇵🇭 Philippines +63</option><option value="+48">🇵🇱 Pologne +48</option><option value="+40">🇷🇴 Roumanie +40</option><option value="+65">🇸🇬 Singapour +65</option><option value="+421">🇸🇰 Slovaquie +421</option><option value="+386">🇸🇮 Slovénie +386</option><option value="+66">🇹🇭 Thaïlande +66</option><option value="+380">🇺🇦 Ukraine +380</option><option value="+598">🇺🇾 Uruguay +598</option><option value="+998">🇺🇿 Ouzbékistan +998</option></select><input id="regPhone" placeholder="Numero - Ex: 79123456" /><input id="regPassword" type="password" placeholder="Password - Ibiharuro 4-6 gusa - Ex: 1234" inputmode="numeric" /><select id="regCountry"><option>Burundi</option><option>Rwanda</option><option>RDC</option><option>Tanzanie</option></select><select id="regChannel"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option></select><button onclick="register()">Iyandikishe - Ronka Bonus 10,000 BIF</button><div id="regMsg" class="msg"></div></div>
+<div class="card"><h3>🤝 Iyandikishe nk'Agent</h3><p>Ba Agent, fasha abantu, ronka <b>60% ya komisiyo</b> kuri buri transaction! Password = Ibiharuro 4-6 gusa!</p><input id="agentName" placeholder="Izina ryuzuye" /><input id="agentPhone" placeholder="Numero - Ex: 79123456" /><input id="agentPassword" type="password" placeholder="Password - Ibiharuro 4-6 - Ex: 1234" inputmode="numeric" /><input id="agentProvince" placeholder="Province" /><button class="yellow" onclick="registerAgent()">Iyandikishe nk'Agent</button><div id="agentMsg" class="msg"></div></div>
+<div class="card"><h3>📱 Gura Unités</h3><p>Gura Unités za Lumitel / Econet vuba! <b>Bonus yawe ishobora gukoreshwa hano.</b> Gura Unités inshuro 2 kugira Bonus yawe ifunguke!</p><p>✅ Bonus 10,000 BIF<br>✅ Gura Unités 2x = Bonus irafunguka<br>✅ Komisiyo 2% gusa</p><button onclick="window.location.href='client.html'">Injira Ugure Unités →</button></div>
 </div>
 <div class="how"><h2>Uko Bikora - Intambwe 3 Zoroshe</h2><div class="steps"><div class="step"><b>1️⃣</b><h4>Iyandikishe</h4><p>Iyandikishe ubuntu, ronka Bonus 10,000 BIF. Tegereza Admin yemeze.</p></div><div class="step"><b>2️⃣</b><h4>Gura Unités 2x</h4><p>Gura Unités inshuro 2 kugira Bonus yawe ifunguke.</p></div><div class="step"><b>3️⃣</b><h4>Rungika</h4><p>Bonus imaze gufunguka, rungika amafaranga vuba! Komisiyo 2% gusa.</p></div></div></div>
-<footer><p>© 2026 SendMoney - Joctan Nyandwi 🇧🇮</p><p><a href="client.html">Mon Compte</a> | <a href="admin-login.html">Admin</a></p><p style="font-size:13px;opacity:0.8;margin-top:10px">Bonus ni amafaranga ya Electronique muri SendMoney gusa - yo kwerekana ukuntu urubuga rukora. SendMoney ntibika Password zawe ku karubanda. Ingorane? Hamagara Admin.</p><p style="font-size:12px;opacity:0.7;margin-top:8px">Amategeko: Numero 1 = Compte 1 gusa. Password ni ibanga ryawe - ntuyihe umuntu n'umwe. Admin ntazokubaza Password yawe.</p></footer>
+<footer><p>© 2026 SendMoney - Joctan Nyandwi 🇧🇮</p><p><a href="client.html">Mon Compte</a> | <a href="admin-login.html">Admin</a></p><p style="font-size:13px;opacity:0.8;margin-top:10px">Bonus ni amafaranga ya Electronique muri SendMoney gusa. Password = Ibiharuro 4-6 gusa - Admin gusa afise Password y'Inyuguti. Ingorane? Hamagara Admin.</p><p style="font-size:12px;opacity:0.7;margin-top:8px">Amategeko: Numero 1 = Compte 1 gusa. Password ni ibanga ryawe - ntuyihe umuntu n'umwe.</p></footer>
 <script>
 function normPhone(p){ p=String(p||'').trim().replace(/[\s\-]/g,''); if(p.startsWith('0')) p='+257'+p.slice(1); if(/^\d{8}$/.test(p)) p='+257'+p; if(/^257\d{8}$/.test(p)) p='+'+p; return p; }
 async function register(){
   const full_name=document.getElementById('regName').value.trim();
-  const phone=normPhone(document.getElementById('regPhone').value);
+  const code=document.getElementById('countryCode').value;
+  const rawPhone=document.getElementById('regPhone').value.trim().replace(/[\s\-]/g,'');
+  const phone=code+rawPhone.replace(/^0+/,'');
   const password=document.getElementById('regPassword').value;
   const country=document.getElementById('regCountry').value;
   const channel=document.getElementById('regChannel').value;
   const m=document.getElementById('regMsg');
-  if(!full_name||!phone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
-  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi! Andika 79123456 canke +25779123456'; return; }
-  if(!password||password.length<4){ m.className='msg error'; m.textContent='Password igomba kuba nibura inyuguti 4!'; return; }
+  if(!full_name||!rawPhone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
+  if(!/^[0-9]{4,6}$/.test(password)){ m.className='msg error'; m.textContent='Password igomba kuba IBHARURO 4-6 gusa! Ex: 1234'; return; }
   try{
     const r=await fetch('/api/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,country,channel,password})});
     const d=await r.json();
-    if(r.ok){ m.className='msg success'; m.textContent='✅ '+d.message; }
-    else{ m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
-  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - Site iratinda gato, gerageza nshasha'; }
+    if(r.ok){ m.className='msg success'; m.textContent='✅ '+d.message; } else { m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - Gerageza nshasha'; }
 }
 async function registerAgent(){
   const full_name=document.getElementById('agentName').value.trim();
@@ -116,22 +42,14 @@ async function registerAgent(){
   const province=document.getElementById('agentProvince').value.trim();
   const m=document.getElementById('agentMsg');
   if(!full_name||!phone){ m.className='msg error'; m.textContent='Uzuza izina na telefone!'; return; }
-  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi!'; return; }
-  if(!password||password.length<4){ m.className='msg error'; m.textContent='Password igomba kuba nibura inyuguti 4!'; return; }
+  if(!/^[0-9]{4,6}$/.test(password)){ m.className='msg error'; m.textContent='Password igomba kuba IBHARURO 4-6 gusa!'; return; }
   try{
     const r=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,province,password})});
     const d=await r.json();
-    if(r.ok){ m.className='msg success'; m.textContent='✅ Agent yanditswe!'; }
-    else{ m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
+    if(r.ok){ m.className='msg success'; m.textContent='✅ Agent yanditswe!'; } else { m.className='msg error'; m.textContent=d.message||'Habaye ikibazo'; }
   }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
 }
-async function sendMoney(){
-  const m=document.getElementById('sendMsg');
-  const receiverPhone=normPhone(document.getElementById('receiverPhone').value);
-  const amount=document.getElementById('amount').value;
-  if(!receiverPhone||!amount){ m.className='msg error'; m.textContent='Uzuza numero n\'amount!'; return; }
-  m.className='msg error'; m.textContent='Banza winjire muri Compte yawe imbere yo kurungika! Kanda Injira.'; return;
-}
+async function sendMoney(){ const m=document.getElementById('sendMsg'); m.className='msg error'; m.textContent='Banza winjire muri Compte yawe imbere yo kurungika! Kanda Injira.'; return; }
 </script>
 </body>
 </html>
