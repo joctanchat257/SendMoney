@@ -1,23 +1,7 @@
 <!DOCTYPE html>
 <html lang="rn">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Compte - SendMoney</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
-body{background:#f5f5f5;padding:20px}
-header{background:#0B8A3E;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}
-header a{color:#FFD700;text-decoration:none;font-weight:700}
-.card{background:#fff;padding:25px;border-radius:15px;max-width:550px;margin:20px auto;box-shadow:0 2px 15px rgba(0,0,0,0.08)}
-.card h2{color:#0B8A3E;margin-bottom:15px;text-align:center}
-.card input,.card select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;font-size:16px}
-.card button{background:#0B8A3E;color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer}
-.msg{margin-top:12px;padding:12px;border-radius:10px;text-align:center;display:none}
-.msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}
-.balance{font-size:32px;font-weight:900;color:#0B8A3E;text-align:center;margin:10px 0}
-.actions{display:flex;gap:10px;margin-top:15px}.actions button{flex:1}
-.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px;line-height:1.5}
-</style>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Mon Compte - SendMoney</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}body{background:#f5f5f5;padding:20px}header{background:#0B8A3E;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}header a{color:#FFD700;text-decoration:none;font-weight:700}.card{background:#fff;padding:25px;border-radius:15px;max-width:550px;margin:20px auto;box-shadow:0 2px 15px rgba(0,0,0,0.08)}.card h2{color:#0B8A3E;margin-bottom:15px;text-align:center}.card input,.card select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;font-size:16px}.card button{background:#0B8A3E;color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer}.msg{margin-top:12px;padding:12px;border-radius:10px;text-align:center;display:none}.msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}.balance{font-size:32px;font-weight:900;color:#0B8A3E;text-align:center;margin:10px 0}.actions{display:flex;gap:10px;margin-top:15px}.actions button{flex:1}.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px;line-height:1.5}</style>
 </head>
 <body>
 <header><h1>💸 SendMoney - Mon Compte</h1><a href="/">← Ahabanza</a></header>
@@ -25,10 +9,17 @@ header a{color:#FFD700;text-decoration:none;font-weight:700}
 <h2>Injira - Client</h2>
 <input id="loginName" placeholder="Izina ryuzuye" />
 <input id="loginPhone" placeholder="Numero - 79123456 canke +25779123456" />
-<input id="loginPassword" type="password" placeholder="Password" />
+<input id="loginPassword" type="password" placeholder="Password - Ibiharuro 4-6 - Ex: 1234" inputmode="numeric" />
 <button onclick="login()">Injira →</button>
 <div id="loginMsg" class="msg"></div>
-<p style="text-align:center;margin-top:12px;font-size:13px;color:#888">Wibagiye Password? <b>Hamagar Admin</b> - ni we azoguhindurira Password nshasha.<br>Nta Compte? <a href="/">Iyandikishe hano</a></p>
+<button onclick="showForgot()" style="background:#ff9800;margin-top:10px">🔑 Wibagiye Password? Kanda Hano!</button>
+<div id="forgotBox" style="display:none;margin-top:15px;border:1px solid #ff9800;padding:15px;border-radius:10px">
+<p style="font-size:14px;line-height:1.6"><b>🔒 Réinitialisation SÉCURISÉ - Intambwe 2</b><br><b>Intambwe 1:</b> Saba Admin akwemere<br><b>Intambwe 2:</b> Hindura Password na Code Admin yaguhaye<br><br>⚠️ <b>Admin AZOKUHAMAGARA</b> kuri Numero yawe! Tegereza iminota 5!</p>
+<div id="step1"><input id="forgotName" placeholder="Izina ryuzuye" /><input id="forgotPhone" placeholder="Numero - 79123456" /><button onclick="requestReset()" style="background:#ff9800">📩 Saba Admin Ankemere →</button></div>
+<div id="step2" style="display:none;margin-top:15px"><input id="resetCode" placeholder="Code y'ibanga - 6 chiffres" inputmode="numeric" /><input id="forgotNewPass" type="password" placeholder="Password Nshasha - Ibiharuro 4-6 - Ex: 1234" inputmode="numeric" /><button onclick="confirmReset()" style="background:#0B8A3E">✅ Hindura Password Nshasha →</button></div>
+<div id="forgotMsg" class="msg"></div>
+</div>
+<p style="text-align:center;margin-top:12px;font-size:13px;color:#888">Nta Compte? <a href="/">Iyandikishe hano</a></p>
 </div>
 <div class="card" id="dashCard" style="display:none">
 <h2 id="dashName">Murakaza neza</h2>
@@ -36,22 +27,11 @@ header a{color:#FFD700;text-decoration:none;font-weight:700}
 <div class="balance" id="dashBalance">0 BIF</div>
 <p style="text-align:center;font-size:13px;color:#888" id="dashBonus"></p>
 <div class="actions"><button onclick="showAirtime()">Gura Unités</button><button onclick="showSend()">Ohereza</button></div>
-<div id="airtimeBox" style="display:none;margin-top:15px">
-<input id="airPhone" placeholder="Numero yo kurungikira Unités" />
-<input id="airAmount" type="number" placeholder="Amount" />
-<select id="airOperator"><option>Lumitel</option><option>Econet</option></select>
-<button onclick="buyAirtime()">Gura Unités</button>
-</div>
-<div id="sendBox" style="display:none;margin-top:15px">
-<input id="sendPhone" placeholder="Numero y'uwakira" />
-<input id="sendAmount" type="number" placeholder="Amount" />
-<button onclick="sendMoney()">Ohereza</button>
-</div>
+<div id="airtimeBox" style="display:none;margin-top:15px"><input id="airPhone" placeholder="Numero yo kurungikira Unités" /><input id="airAmount" type="number" placeholder="Amount" /><select id="airOperator"><option>Lumitel</option><option>Econet</option></select><button onclick="buyAirtime()">Gura Unités</button></div>
+<div id="sendBox" style="display:none;margin-top:15px"><input id="sendPhone" placeholder="Numero y'uwakira" /><input id="sendAmount" type="number" placeholder="Amount" /><button onclick="sendMoney()">Ohereza</button></div>
 <div id="sendMsg" class="msg"></div>
-<h3 style="margin-top:20px;color:#0B8A3E">📋 Transactions zawe - Historique</h3>
-<div id="txList"></div>
-<h3 style="margin-top:20px;color:#0B8A3E">📱 Unités waguriye</h3>
-<div id="airList"></div>
+<h3 style="margin-top:20px;color:#0B8A3E">📋 Transactions zawe</h3><div id="txList"></div>
+<h3 style="margin-top:20px;color:#0B8A3E">📱 Unités waguriye</h3><div id="airList"></div>
 <button onclick="logout()" style="background:#f44336;margin-top:20px">🚪 Sohoka</button>
 </div>
 <script>
@@ -63,8 +43,8 @@ async function login(){
   const password=document.getElementById('loginPassword').value;
   const m=document.getElementById('loginMsg');
   if(!name||!phone||!password){ m.className='msg error'; m.textContent='Uzuza izina, numero na Password!'; return; }
-  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi! Andika 79123456 canke +25779123456'; return; }
-  m.className='msg success'; m.textContent='Tegereza gato... Site iratinda gato...';
+  if(!/^[0-9]{4,6}$/.test(password)){ m.className='msg error'; m.textContent='Password igomba kuba IBHARURO 4-6 gusa!'; return; }
+  m.className='msg success'; m.textContent='Tegereza gato...';
   try{
     const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:name, phone, password})});
     const d=await r.json();
@@ -76,13 +56,26 @@ async function login(){
     document.getElementById('dashPhone').textContent=d.customer.phone;
     document.getElementById('dashBalance').textContent=(d.wallet?d.wallet.balance:0)+' BIF';
     document.getElementById('dashBonus').textContent=d.wallet&&d.wallet.bonus_locked ? '🔒 Bonus ifunzwe - Gura Unités inshuro '+(2-(d.wallet.airtime_count||0))+' zikurikira' : '✅ Bonus irafungutse - Ushobora kurungika!';
-    let th='';
-    (d.transactions||[]).forEach(x=>{ th+=`<div class="tx"><b>${x.code||''}</b> - ${x.amount} BIF - ${x.type||''} - ${x.receiver_phone||x.to_phone||''} | Fee: ${x.fee||0} BIF<br><span style="color:#888">${new Date(x.created_at).toLocaleString()}</span></div>`; });
+    let th=''; (d.transactions||[]).forEach(x=>{ th+=`<div class="tx"><b>${x.code||''}</b> - ${x.amount} BIF - ${x.type||''} - ${x.receiver_phone||x.to_phone||''} | Fee: ${x.fee||0} BIF<br><span style="color:#888">${new Date(x.created_at).toLocaleString()}</span></div>`; });
     document.getElementById('txList').innerHTML=th||'Nta transaction';
-    let ah='';
-    (d.airtime||[]).forEach(x=>{ ah+=`<div class="tx"><b>${x.amount} BIF</b> - ${x.operator} - ${x.phone}<br><span style="color:#888">${new Date(x.created_at).toLocaleString()}</span></div>`; });
+    let ah=''; (d.airtime||[]).forEach(x=>{ ah+=`<div class="tx"><b>${x.amount} BIF</b> - ${x.operator} - ${x.phone}<br><span style="color:#888">${new Date(x.created_at).toLocaleString()}</span></div>`; });
     document.getElementById('airList').innerHTML=ah||'Nta Unités';
-  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - Site iratinda, gerageza nshasha'; }
+  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo - Gerageza nshasha'; }
+}
+function showForgot(){ document.getElementById('forgotBox').style.display='block'; }
+async function requestReset(){
+  const full_name=document.getElementById('forgotName').value.trim();
+  const phone=document.getElementById('forgotPhone').value.trim();
+  const m=document.getElementById('forgotMsg');
+  try{ const r=await fetch('/api/forgot-password-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name, phone})}); const d=await r.json(); m.className=r.ok?'msg success':'msg error'; m.textContent=d.message; if(r.ok) document.getElementById('step2').style.display='block'; }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+}
+async function confirmReset(){
+  const phone=document.getElementById('forgotPhone').value.trim();
+  const code=document.getElementById('resetCode').value.trim();
+  const newPassword=document.getElementById('forgotNewPass').value.trim();
+  const m=document.getElementById('forgotMsg');
+  if(!/^[0-9]{4,6}$/.test(newPassword)){ m.className='msg error'; m.textContent='Password nshasha igomba kuba IBHARURO 4-6 gusa!'; return; }
+  try{ const r=await fetch('/api/reset-password-confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, code, newPassword})}); const d=await r.json(); m.className=r.ok?'msg success':'msg error'; m.textContent=d.message; }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
 }
 function showAirtime(){ document.getElementById('airtimeBox').style.display='block'; document.getElementById('sendBox').style.display='none'; }
 function showSend(){ document.getElementById('sendBox').style.display='block'; document.getElementById('airtimeBox').style.display='none'; }
@@ -91,25 +84,13 @@ async function buyAirtime(){
   const amount=document.getElementById('airAmount').value;
   const operator=document.getElementById('airOperator').value;
   const m=document.getElementById('sendMsg');
-  if(!/^\+257\d{8}$/.test(phone)){ m.className='msg error'; m.textContent='Numero nabi!'; return; }
-  try{
-    const r=await fetch('/api/airtime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId, phone, amount, operator})});
-    const d=await r.json();
-    m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error;
-    if(r.ok) setTimeout(()=>location.reload(),1200);
-  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+  try{ const r=await fetch('/api/airtime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId, phone, amount, operator})}); const d=await r.json(); m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error; if(r.ok) setTimeout(()=>location.reload(),1200); }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
 }
 async function sendMoney(){
   const to_phone=normPhone(document.getElementById('sendPhone').value);
   const amount=document.getElementById('sendAmount').value;
   const m=document.getElementById('sendMsg');
-  if(!/^\+257\d{8}$/.test(to_phone)){ m.className='msg error'; m.textContent='Numero y\'uwakira nabi!'; return; }
-  try{
-    const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_customer_id:customerId, to_phone, amount})});
-    const d=await r.json();
-    m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error||'Vyagenze!';
-    if(r.ok) setTimeout(()=>location.reload(),1200);
-  }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
+  try{ const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_customer_id:customerId, to_phone, amount})}); const d=await r.json(); m.className=r.ok?'msg success':'msg error'; m.textContent=d.message||d.error||'Vyagenze!'; if(r.ok) setTimeout(()=>location.reload(),1200); }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
 }
 function logout(){ if(confirm('Urahamya ko ushaka gusohoka?')) location.reload(); }
 </script>
