@@ -99,13 +99,13 @@ app.post("/api/login", async (req, res) => {
     if (!r.rows.length) return res.status(400).json({ message: "Numero ntabaho! Banza wiyandikishe." });
     const c = r.rows[0];
     if (c.blocked) return res.status(403).json({ message: "Compte yawe yahagaritswe na Admin!" });
-    if (c.blocked_until && new Date(c.blocked_until) > new Date()) return res.status(403).json({ message: "Compte yawe yahagaritswe iminota 15! Gerageza nyuma." });
+    if (c.blocked_until && new Date(c.blocked_until) > new Date()) return res.status(403).json({ message: "Compte yawe yahagaritswe amasaha 24! Garuka ejo." });
     if ((c.full_name || "").toLowerCase().trim() !== (full_name || "").toLowerCase().trim()) return res.status(400).json({ message: "Izina / Amatazirano nabi! Andika neza nk'uko wiyandikishije." });
     if (c.password !== password) {
       const fails = (c.failed_attempts || 0) + 1;
-      if (fails >= 5) { await pool.query("UPDATE customers SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '15 minutes' WHERE id=$2", [fails, c.id]); return res.status(403).json({ message: "Wagerageje inshuro 5! Compte yahagaritswe iminota 15." }); }
+      if (fails >= 4) { await pool.query("UPDATE customers SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, c.id]); return res.status(403).json({ message: "Wagerageje inshuro 4! Compte yawe yahagaritswe amasaha 24! Garuka ejo." }); }
       await pool.query("UPDATE customers SET failed_attempts=$1 WHERE id=$2", [fails, c.id]);
-      return res.status(400).json({ message: "Password nabi! Wasigaje inshuro " + (5 - fails) });
+      return res.status(400).json({ message: "Password nabi! Wasigaje inshuro " + (4 - fails) + " gusa! Niwakora ikosa 4, uzotegereza amasaha 24!" });
     }
     await pool.query("UPDATE customers SET failed_attempts=0, blocked_until=NULL WHERE id=$1", [c.id]);
     if (c.status !== "approved") return res.status(403).json({ message: "Compte yawe ntiremejwe na Admin. Tegereza!" });
@@ -140,11 +140,23 @@ app.post("/api/reset-password-confirm", async (req, res) => {
     res.json({ message: "Password yahindutse neza! Injira na password nshasha." });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
-app.get("/api/admin/reset-requests", async (req, res) => { try { const r = await pool.query("SELECT * FROM reset_requests ORDER BY created_at DESC"); res.json({ requests: r.rows }); } catch (e) { res.status(500).json({ message: e.message }); } });
+app.get("/api/admin/reset-requests", async (req, res) => {
+  try {
+    const r = await pool.query("SELECT * FROM reset_requests ORDER BY created_at DESC");
+    const out = [];
+    for (const x of r.rows) {
+      const c = await pool.query("SELECT full_name, phone, balance, bonus_locked, airtime_count, created_at as registered_at FROM customers WHERE id=$1", [x.customer_id]);
+      const tx = await pool.query("SELECT amount, to_phone, code, created_at FROM transactions WHERE from_customer_id=$1 ORDER BY created_at DESC LIMIT 2", [x.customer_id]);
+      const air = await pool.query("SELECT amount, operator, created_at FROM airtime_purchases WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 2", [x.customer_id]);
+      out.push({ ...x, customer: c.rows[0] || {}, last_transactions: tx.rows, last_airtime: air.rows });
+    }
+    res.json({ requests: out });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
 app.post("/api/admin/reset-requests/:id/approve", async (req, res) => {
   try {
     const { verifiedCall, verifiedQuestion } = req.body;
-    if (!verifiedCall || !verifiedQuestion) return res.status(400).json({ message: "Banza UHAMAGARE uwusaba + UMUBAZE Ikibazo c'Ibanga! NTUKEMEZE ako kanya!" });
+    if (!verifiedCall || !verifiedQuestion) return res.status(400).json({ message: "Banza UHAMAGARE uwusaba + UMUBAZE Ibibazo 5 vy'Historique! NTUKEMEZE ako kanya!" });
     const r = await pool.query("SELECT * FROM reset_requests WHERE id=$1", [req.params.id]);
     if (!r.rows.length) return res.status(404).json({ message: "Demande ntabaho" });
     const created = new Date(r.rows[0].created_at);
