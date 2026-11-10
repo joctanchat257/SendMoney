@@ -2,12 +2,16 @@
 <style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}body{background:#f5f5f5}
 #splash{position:fixed;inset:0;background:#0B8A3E;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;cursor:pointer;transition:all .8s}
 #splash.hide{transform:translateY(-100%) rotate(5deg);opacity:0;pointer-events:none}
-#splashLogo{font-size:110px;transition:transform .8s}
-#splash:hover #splashLogo{transform:rotate(360deg) scale(1.15)}
+#splashLogo{transition:transform .8s}
+#splash:hover #splashLogo{transform:rotate(360deg) scale(1.08)}
 #splash h1{color:#fff;font-size:42px;margin-top:10px}
 #splash p{color:#FFD700;font-weight:700;margin-top:8px}
+.logo-text{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:900;font-size:38px;letter-spacing:1px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,.25)}
+.logo-text span:nth-child(1){color:#FF0000}.logo-text span:nth-child(2){color:#FF7A00}.logo-text span:nth-child(3){color:#FFD700}.logo-text span:nth-child(4){color:#00FF88}.logo-text span:nth-child(5){color:#0096FF}.logo-text span:nth-child(6){color:#B565FF}.logo-text span:nth-child(7){color:#FF0000}.logo-text span:nth-child(8){color:#FF7A00}.logo-text span:nth-child(9){color:#FFD700}
+.logo-text-small{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:900;font-size:26px;letter-spacing:.5px}
+.logo-text-small span:nth-child(1){color:#FF0000}.logo-text-small span:nth-child(2){color:#FF7A00}.logo-text-small span:nth-child(3){color:#FFD700}.logo-text-small span:nth-child(4){color:#00FF88}.logo-text-small span:nth-child(5){color:#0096FF}.logo-text-small span:nth-child(6){color:#B565FF}.logo-text-small span:nth-child(7){color:#FF0000}.logo-text-small span:nth-child(8){color:#FF7A00}.logo-text-small span:nth-child(9){color:#FFD700}
 header{background:#0B8A3E;color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}
-header .logo{font-weight:800;font-size:24px;cursor:pointer}
+header .logo{font-weight:800;font-size:24px;cursor:pointer;display:flex;align-items:center;gap:8px}
 header a{color:#fff;text-decoration:none;font-weight:700;margin:0 8px}
 header a.gold{color:#FFD700}
 .lang button{padding:6px 10px;border:none;border-radius:20px;cursor:pointer;font-weight:700;font-size:12px;background:#fff;color:#0B8A3E}
@@ -39,20 +43,21 @@ header a.gold{color:#FFD700}
 .feature b{font-size:22px;display:block;margin-bottom:6px}
 .warn{background:#fff3cd;border:1px solid #FFD700;padding:15px;border-radius:10px;margin:15px 0;font-size:14px}
 footer{text-align:center;padding:20px;color:#888;font-size:13px}
+.notis{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.notis span{padding:8px 12px;border-radius:20px;font-weight:800;font-size:13px;color:#fff}
 </style></head><body>
 
-<div id="splash" onclick="enterSite()"><div id="splashLogo">💸</div><h1>SendMoney</h1><p>Kanda hano kwinjira →</p></div>
+<div id="splash" onclick="enterSite()"><img id="splashLogo" src="logo3.png" style="width:230px;height:230px;object-fit:contain" onerror="this.style.display='none'"><div class="logo-text" style="margin-top:8px"><span>S</span><span>e</span><span>n</span><span>d</span><span>M</span><span>o</span><span>n</span><span>e</span><span>y</span></div><p>Kanda hano kwinjira →</p><div class="notis"><span style="background:#0096FF">1000 BIF</span><span style="background:#0B8A3E">5000 BIF</span><span style="background:#FF7A00">10000 BIF</span><span style="background:#0B8A3E">100 USD</span><span style="background:#2E5AAC">50 EURO</span></div></div>
 
-<header><div class="logo" onclick="enterSite()">💸 SendMoney</div><div class="lang"><button id="btn-rn" class="active" onclick="setLang('rn')">Kirundi</button><button id="btn-rw" onclick="setLang('rw')">Kinyarwanda</button><button id="btn-fr" onclick="setLang('fr')">Français</button></div><nav><a href="/client.html" data-t="login">Injira</a><a href="/agent.html">Agent</a><a href="/super-agent.html">Super Agent</a><a href="/admin-login.html" class="gold">Admin</a></nav></header>
+<header><div class="logo" onclick="enterSite()"><img src="logo3.png" style="width:42px;height:42px;object-fit:contain" onerror="this.style.display='none'"><span class="logo-text-small"><span>S</span><span>e</span><span>n</span><span>d</span><span>M</span><span>o</span><span>n</span><span>e</span><span>y</span></span></div><div class="lang"><button id="btn-rn" class="active" onclick="setLang('rn')">Kirundi</button><button id="btn-rw" onclick="setLang('rw')">Kinyarwanda</button><button id="btn-fr" onclick="setLang('fr')">Français</button></div><nav><a href="/client.html" data-t="login">Injira</a><a href="/agent.html">Agent</a><a href="/super-agent.html">Super Agent</a><a href="/admin-login.html" class="gold">Admin</a></nav></header>
 
-<div class="hero"><h1 data-t="heroTitle">Rungika Amafaranga Vuba, Vyizigirwa!</h1><p data-t="heroSub">Lumicash • Ecocash • Bancobu eNoti • BCB Mobile • KCB Mobi • Airtel Money • Cash • Bank Transfer</p><div class="badge">🎁 Bonus 10,000 BIF — Gura Unites 2x Urafungura!</div><br><br><button class="btn-gold" onclick="shareWhatsApp()" style="padding:12px 22px;font-size:15px">📲 Sangiza kuri 【entity-WhatsApp¦canonical_name=WhatsApp】</button></div>
+<div class="hero"><div style="display:flex;justify-content:center"><img src="logo3.png" style="width:150px;height:150px;object-fit:contain" onerror="this.style.display='none'"></div><div class="logo-text" style="font-size:48px;margin:10px 0"><span>S</span><span>e</span><span>n</span><span>d</span><span>M</span><span>o</span><span>n</span><span>e</span><span>y</span></div><h1 data-t="heroTitle">Rungika Amafaranga Vuba, Vyizigirwa!</h1><p data-t="heroSub">Lumicash • Ecocash • Bancobu eNoti • BCB Mobile • KCB Mobi • Airtel Money • Cash • Bank Transfer</p><div class="badge">🎁 Bonus 10,000 BIF — Gura Unites 2x Urafungura!</div><br><br><button class="btn-gold" onclick="shareWhatsApp()" style="padding:12px 22px;font-size:15px">📲 Sangiza kuri 【entity-WhatsApp¦canonical_name=WhatsApp】</button><div class="notis"><span style="background:#0096FF">💵 1000 BIF</span><span style="background:#0B8A3E">💵 5000 BIF</span><span style="background:#FF7A00">💵 10000 BIF</span><span style="background:#0B8A3E">💵 100 USD</span><span style="background:#2E5AAC">💶 50 EURO</span></div></div>
 
 <div class="container">
 <div class="warn">⚠️ <b>DEMO:</b> Iyi ni version yo kugerageza. NTUZE utange amafaranga nyayo utabanje kuvugana na SendMoney. Turiko turategereza uruhusha rwa BRB. — SendMoney Team</div>
 
 <div class="card"><div class="tabs"><button id="tabClient" class="active" onclick="showTab('client')">👤 Client</button><button id="tabAgent" onclick="showTab('agent')">🧑‍💼 Agent</button></div>
 
-<!-- CLIENT REGISTER -->
 <div id="formClient">
 <h2 data-t="regTitle">Iyandikishe — Client</h2>
 <div class="name-row"><div class="name-field"><label data-t="first">Izina:</label><input id="regFirst" placeholder="Izina"></div><div class="name-field"><label data-t="last">Amatazirano:</label><input id="regLast" placeholder="Amatazirano"></div></div>
@@ -66,7 +71,6 @@ footer{text-align:center;padding:20px;color:#888;font-size:13px}
 <p style="text-align:center;margin-top:10px">Ufise compte? <a href="/client.html" style="color:#0B8A3E;font-weight:700">Injira hano</a></p>
 </div>
 
-<!-- AGENT REGISTER -->
 <div id="formAgent" style="display:none">
 <h2>Iyandikishe — Agent</h2>
 <div class="name-row"><div class="name-field"><label>Izina:</label><input id="agentFirst" placeholder="Izina"></div><div class="name-field"><label>Amatazirano:</label><input id="agentLast" placeholder="Amatazirano"></div></div>
@@ -81,7 +85,7 @@ footer{text-align:center;padding:20px;color:#888;font-size:13px}
 
 <div class="card"><h2>✨ Kuki SendMoney?</h2><div class="grid"><div class="feature"><b>⚡ Vuba</b><span>Amafaranga agera vuba cane</span></div><div class="feature"><b>🔒 Vyizigirwa</b><span>PIN + Izina ryemejwe + EGO/OYA</span></div><div class="feature"><b>🎁 Bonus 10,000</b><span>Gura Unites 2x urafungura</span></div><div class="feature"><b>🎁 Referral 200</b><span>Tumira umugenzi uronka 200 BIF</span></div><div class="feature"><b>💸 Fee 2% gusa</b><span>Igaburwa: Agent 60% / Super 20% / Platform 20%</span></div><div class="feature"><b>📲 WhatsApp</b><span>Bwira uwakira kuri WhatsApp</span></div></div></div>
 
-<div class="card"><h2>💸 Amafaranga avuye / Amafaranga arungitswe</h2><p><b>Amafaranga avuye:</b> Lumicash, Ecocash, Bancobu eNoti, BCB Mobile, KCB Mobi, Airtel Money, Cash, Bank Transfer</p><p style="margin-top:8px"><b>Amafaranga arungitswe:</b> Lumicash, Ecocash, Bancobu eNoti, BCB Mobile, KCB Mobi, Airtel Money, Cash - Aho Uri, Bank Transfer</p><p style="margin-top:8px"><b>Limite:</b> Max 200,000 BIF rimwe • Max 500,000 BIF ku musi • Withdraw max 100,000 BIF ku musi</p></div>
+<div class="card"><h2>💸 Amafaranga avuye / Amafaranga arungitswe</h2><p><b>Amafaranga avuye:</b> Lumicash, Ecocash, Bancobu eNoti, BCB Mobile, KCB Mobi, Airtel Money, Cash, Bank Transfer</p><p style="margin-top:8px"><b>Amafaranga arungitswe:</b> Lumicash, Ecocash, Bancobu eNoti, BCB Mobile, KCB Mobi, Airtel Money, Cash - Aho Uri, Bank Transfer</p><p style="margin-top:8px"><b>Limite:</b> Max 200,000 BIF rimwe • Max 500,000 BIF ku musi • Withdraw max 100,000 BIF ku musi</p><div class="notis"><span style="background:#0096FF">1000 BIF</span><span style="background:#0B8A3E">5000 BIF</span><span style="background:#FF7A00">10000 BIF</span><span style="background:#0B8A3E">100 USD</span><span style="background:#2E5AAC">50 EURO</span></div></div>
 
 <div class="card" style="background:#0B8A3E;color:#fff;text-align:center"><h2 style="color:#fff">📞 Ukeneye Ubufasha?</h2><p style="font-size:15px;margin:10px 0">Hamagara <b>SendMoney</b>!</p><a href="tel:+25767899429" style="display:block;background:#FFD700;color:#000;font-size:28px;font-weight:900;padding:15px;border-radius:12px;text-decoration:none;margin:10px 0">📞 +257 67 89 94 29</a><p style="font-size:13px;opacity:.9">Hamagara canke WhatsApp — Turakwakira!</p><button class="btn-whatsapp" style="margin-top:10px;background:#25D366" onclick="contactSendMoney()">💬 Vugana na SendMoney kuri WhatsApp</button><p style="font-size:12px;opacity:.8;margin-top:10px">Izina kuri WhatsApp: <b>SendMoney</b> ✅</p></div>
 
