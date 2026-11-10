@@ -1,142 +1,17 @@
-<!DOCTYPE html>
-<html lang="rn">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Super Agent - SendMoney</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
-body{background:#f5f5f5;padding:20px}
-header{background:#0B4D8C;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}
-header a{color:#FFD700;text-decoration:none;font-weight:700}
-.card{background:#fff;padding:25px;border-radius:15px;max-width:600px;margin:20px auto}
-.card h2{color:#0B4D8C;margin-bottom:15px;text-align:center}
-.card input,.card select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;font-size:16px}
-.card button{background:#0B4D8C;color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer}
-.msg{margin-top:12px;padding:12px;border-radius:10px;text-align:center;display:none}
-.msg.success{background:#d4edda;color:#155724;display:block}
-.msg.error{background:#f8d7da;color:#721c24;display:block}
-.balance{font-size:36px;font-weight:900;color:#0B4D8C;text-align:center;margin:10px 0}
-.stats{display:flex;gap:12px;margin:15px 0}
-.stat{flex:1;background:#E3F2FD;padding:15px;border-radius:12px;text-align:center}
-.stat b{font-size:20px;color:#0B4D8C;display:block}
-.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px;line-height:1.6}
-.badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700}
-.badge.pending{background:#fff3cd;color:#856404}
-.badge.approved{background:#d4edda;color:#155724}
-.badge.rejected{background:#f8d7da;color:#721c24}
-.phone-row{display:flex;gap:0;margin-bottom:12px;border:1px solid #ddd;border-radius:10px;overflow:hidden;background:#fff}
-.phone-row select{width:42%;border:none;padding:13px;font-size:15px;font-weight:700;background:#f9f9f9;cursor:pointer;outline:none}
-.phone-row input{width:58%;border:none;padding:13px;font-size:16px;outline:none;margin:0!important;border-radius:0!important}
-.name-row{display:flex;gap:10px;margin-bottom:12px}
-.name-field{flex:1}
-.name-field label{display:block;font-weight:700;font-size:13px;margin-bottom:5px;color:#333;text-align:left}
-.name-field input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:15px;margin:0!important}
-.field label{display:block;font-weight:700;font-size:13px;margin:12px 0 5px;text-align:left}
-.field input,.field select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:15px}
-</style>
-</head>
-<body>
-<header><h1>SendMoney - Super Agent Dashboard</h1><a href="/">Ahabanza</a></header>
-
-<div class="card" id="loginCard">
-<h2>Injira - Super Agent</h2>
-<p style="text-align:center;color:#666;font-size:14px;margin-bottom:15px">Super Agent Ashigwaho na Joctan Gusa Niyinjira!</p>
-<div class="name-row"><div class="name-field"><label>Izina:</label><input id="loginFirstName" placeholder="Izina" /></div><div class="name-field"><label>Amatazirano:</label><input id="loginLastName" placeholder="Amatazirano" /></div></div>
-<div class="field"><label>Numero ya Telephone:</label><div class="phone-row"><select id="loginCountryCode" class="country-select"></select><input id="loginPhone" placeholder="Numero" /></div></div>
-<div class="field"><label>Password:</label><input id="loginPassword" type="password" placeholder="Ibiharuro 4" inputmode="numeric" maxlength="4" /></div>
-<button onclick="loginSuper()">Injira</button>
-<div id="loginMsg" class="msg"></div>
-<p style="text-align:center;margin-top:12px;font-size:13px">Super Agent Ntiyiyandikisha - Ashigwaho na Joctan Gusa!</p>
-</div>
-
-<div class="card" id="dashCard" style="display:none">
-<h2 id="dashName">Murakaza neza, Super Agent!</h2>
-<p style="text-align:center;color:#666" id="dashInfo"></p>
-<div class="balance" id="dashBalance">0 BIF</div>
-<div class="stats">
-<div class="stat"><b id="statEarned">0 BIF</b><span>Total Yinjiye</span></div>
-<div class="stat"><b id="statWithdrawn">0 BIF</b><span>Total Warotiye</span></div>
-<div class="stat"><b id="statCount">0</b><span>Transactions</span></div>
-</div>
-<div style="background:#E3F2FD;padding:15px;border-radius:12px;margin-top:15px">
-<h3>Saba Kurotira Komisiyo Yawe - 20%</h3>
-<p style="font-size:13px;color:#666;margin-bottom:10px">Minimum: <b>5,000 BIF</b></p>
-<div class="field"><label>Amount:</label><input id="withdrawAmount" type="number" placeholder="Amount" /></div>
-<div class="field"><label>Uburyo:</label><select id="withdrawMethod"><option>Mobile Money</option><option>Lumitel Cash</option><option>Econet Leo</option><option>Cash - Aho Uri</option></select></div>
-<button onclick="requestWithdraw()" style="background:#FFD700;color:#000">Saba Kurotira</button>
-<div id="withdrawMsg" class="msg"></div>
-</div>
-<h3 style="margin-top:20px;color:#0B4D8C">Demandes Zawe zo Kurotira</h3>
-<div id="withdrawList"></div>
-<h3 style="margin-top:20px;color:#0B4D8C">Transactions Zawe - Komisiyo 20%</h3>
-<div id="txList"></div>
-<h3 style="margin-top:20px;color:#0B4D8C">Agents Wawe - 5 kugeza 10</h3>
-<div id="agentList"></div>
-<button onclick="logout()" style="background:#f44336;margin-top:20px">Sohoka</button>
-</div>
-
+<!DOCTYPE html><html lang="rn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Super Agent - SendMoney</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}body{background:#f5f5f5;padding:20px}header{background:#0B4D8C;color:#fff;padding:20px;border-radius:15px;display:flex;justify-content:space-between;align-items:center}header a{color:#FFD700;text-decoration:none;font-weight:700}.card{background:#fff;padding:25px;border-radius:15px;max-width:600px;margin:20px auto}.card h2{color:#0B4D8C;margin-bottom:15px;text-align:center}.card input,.card select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;font-size:16px}.card button{background:#0B4D8C;color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer}.msg{margin-top:12px;padding:12px;border-radius:10px;text-align:center;display:none}.msg.success{background:#d4edda;color:#155724;display:block}.msg.error{background:#f8d7da;color:#721c24;display:block}.balance{font-size:36px;font-weight:900;color:#0B4D8C;text-align:center;margin:10px 0}.stats{display:flex;gap:12px;margin:15px 0}.stat{flex:1;background:#E3F2FD;padding:15px;border-radius:12px;text-align:center}.stat b{font-size:20px;color:#0B4D8C;display:block}.tx{border:1px solid #eee;padding:12px;border-radius:10px;margin-top:10px;font-size:14px;line-height:1.6}.badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700}.badge.pending{background:#fff3cd;color:#856404}.badge.approved{background:#d4edda;color:#155724}.badge.rejected{background:#f8d7da;color:#721c24}
+.phone-row{display:flex;gap:0;margin-bottom:12px;border:1px solid #ddd;border-radius:10px;overflow:hidden;background:#fff}.phone-row select{width:42%;border:none;padding:13px;font-size:15px;font-weight:700;background:#f9f9f9;cursor:pointer;outline:none}.phone-row input{width:58%;border:none;padding:13px;font-size:16px;outline:none;margin:0!important;border-radius:0!important}
+.name-row{display:flex;gap:10px;margin-bottom:12px}.name-field{flex:1}.name-field label{display:block;font-weight:700;font-size:13px;margin-bottom:5px;color:#333;text-align:left}.name-field input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:15px;margin:0!important}
+.field label{display:block;font-weight:700;font-size:13px;margin:12px 0 5px;text-align:left}.field input,.field select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:15px}
+</style></head><body><header><h1>SendMoney - Super Agent Dashboard</h1><a href="/">Ahabanza</a></header>
+<div class="card" id="loginCard"><h2>Injira - Super Agent</h2><p style="text-align:center;color:#666;font-size:14px;margin-bottom:15px">Super Agent Ashigwaho na Joctan Gusa Niyinjira!</p><div class="name-row"><div class="name-field"><label>Izina:</label><input id="loginFirstName" placeholder="Izina" /></div><div class="name-field"><label>Amatazirano:</label><input id="loginLastName" placeholder="Amatazirano" /></div></div><div class="field"><label>Numero ya Telephone:</label><div class="phone-row"><select id="loginCountryCode" class="country-select"></select><input id="loginPhone" placeholder="Numero" /></div></div><div class="field"><label>Password:</label><input id="loginPassword" type="password" placeholder="Ibiharuro 4" inputmode="numeric" maxlength="4" /></div><button onclick="loginSuper()">Injira</button><div id="loginMsg" class="msg"></div><p style="text-align:center;margin-top:12px;font-size:13px">Super Agent Ntiyiyandikisha - Ashigwaho na Joctan Gusa!</p></div>
+<div class="card" id="dashCard" style="display:none"><h2 id="dashName">Murakaza neza, Super Agent!</h2><p style="text-align:center;color:#666" id="dashInfo"></p><div class="balance" id="dashBalance">0 BIF</div><div class="stats"><div class="stat"><b id="statEarned">0 BIF</b><span>Total Yinjiye</span></div><div class="stat"><b id="statWithdrawn">0 BIF</b><span>Total Warotiye</span></div><div class="stat"><b id="statCount">0</b><span>Transactions</span></div></div><div style="background:#E3F2FD;padding:15px;border-radius:12px;margin-top:15px"><h3>Saba Kurotira Komisiyo Yawe - 20%</h3><p style="font-size:13px;color:#666;margin-bottom:10px">Minimum: <b>5,000 BIF</b></p><div class="field"><label>Amount:</label><input id="withdrawAmount" type="number" placeholder="Amount" /></div><div class="field"><label>Uburyo:</label><select id="withdrawMethod"><option>Lumicash</option><option>Ecocash</option><option>Bancobu eNoti</option><option>BCB Mobile</option><option>KCB Mobi</option><option>Airtel Money</option><option>Cash - Aho Uri</option><option>Bank Transfer</option></select></div><button onclick="requestWithdraw()" style="background:#FFD700;color:#000">Saba Kurotira</button><div id="withdrawMsg" class="msg"></div></div><h3 style="margin-top:20px;color:#0B4D8C">Demandes Zawe zo Kurotira</h3><div id="withdrawList"></div><h3 style="margin-top:20px;color:#0B4D8C">Transactions Zawe - Komisiyo 20%</h3><div id="txList"></div><h3 style="margin-top:20px;color:#0B4D8C">Agents Wawe - 5 kugeza 10</h3><div id="agentList"></div><button onclick="logout()" style="background:#f44336;margin-top:20px">Sohoka</button></div>
 <script>
 const COUNTRIES=[["Burundi","+257"],["Rwanda","+250"],["RDC","+243"],["Tanzanie","+255"],["Kenya","+254"],["Ouganda","+256"],["Ethiopie","+251"],["Somalie","+252"],["Soudan du Sud","+211"],["USA / Canada","+1"],["France","+33"],["Belgique","+32"],["Suisse","+41"],["Allemagne","+49"],["Angleterre","+44"],["Italie","+39"],["Espagne","+34"],["Pays-Bas","+31"],["Suede","+46"],["Norvege","+47"],["Danemark","+45"],["Finlande","+358"],["Portugal","+351"],["Grece","+30"],["Turquie","+90"],["Russie","+7"],["Chine","+86"],["Inde","+91"],["Japon","+81"],["Coree","+82"],["Australie","+61"],["Bresil","+55"],["Mexique","+52"],["Afrique du Sud","+27"],["Nigeria","+234"],["Ghana","+233"],["Cote d'Ivoire","+225"],["Senegal","+221"],["Mali","+223"],["Burkina Faso","+226"],["Niger","+227"],["Togo","+228"],["Benin","+229"],["Cameroun","+237"],["Gabon","+241"],["Congo","+242"],["Angola","+244"],["Guinee-Bissau","+245"],["Seychelles","+248"],["Soudan","+249"],["Egypte","+20"],["Maroc","+212"],["Algerie","+213"],["Tunisie","+216"],["Libye","+218"],["Dubai / UAE","+971"],["Arabie Saoudite","+966"],["Israel","+972"],["Jordanie","+962"],["Liban","+961"],["Koweit","+965"],["Qatar","+974"],["Bahrein","+973"],["Oman","+968"]];
 document.querySelectorAll('.country-select').forEach(function(sel){ COUNTRIES.forEach(function(c){ var opt=document.createElement('option'); opt.value=c[1]; opt.textContent=c[0]+' '+c[1]; sel.appendChild(opt); }); });
 let superId=null;
-async function loginSuper(){
-var first=document.getElementById('loginFirstName').value.trim();
-var last=document.getElementById('loginLastName').value.trim();
-var full_name=(first+' '+last).trim();
-var code=document.getElementById('loginCountryCode').value;
-var raw=document.getElementById('loginPhone').value.trim().replace(/[\s\-]/g,'');
-var phone=code+raw.replace(/^0+/,'');
-var password=document.getElementById('loginPassword').value;
-var m=document.getElementById('loginMsg');
-if(!first||!last||!raw||!password){ m.className='msg error'; m.textContent='Uzuza Izina, Amatazirano, Numero na Password!'; return; }
-if(!/^[0-9]{4}$/.test(password)){ m.className='msg error'; m.textContent='Password igomba kuba IBHARURO 4 GUSA!'; return; }
-try{
-var r=await fetch('/api/super/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,password})});
-var d=await r.json();
-if(!r.ok){ m.className='msg error'; m.textContent=d.message||'Izina / Numero / Password nabi!'; return; }
-superId=d.super_agent.id;
-document.getElementById('loginCard').style.display='none';
-document.getElementById('dashCard').style.display='block';
-loadDashboard();
-}catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
-}
-async function loadDashboard(){
-try{
-var r=await fetch('/api/super/dashboard/'+superId);
-var d=await r.json();
-var s=d.super_agent;
-document.getElementById('dashName').textContent='Murakaza neza, '+s.full_name+'!';
-document.getElementById('dashInfo').textContent=s.phone+' | Province: '+(s.province||'Burundi');
-document.getElementById('dashBalance').textContent=(s.balance||s.wallet_balance||0)+' BIF';
-document.getElementById('statEarned').textContent=(s.total_earned||0)+' BIF';
-document.getElementById('statWithdrawn').textContent=(s.total_withdrawn||0)+' BIF';
-document.getElementById('statCount').textContent=(d.transactions||[]).length;
-var wh='';
-(d.withdrawals||[]).forEach(function(x){ wh+='<div class="tx"><b>'+x.amount+' BIF</b> - '+x.method+' - <span class="badge '+x.status+'">'+x.status.toUpperCase()+'</span></div>'; });
-document.getElementById('withdrawList').innerHTML=wh||'Nta demande';
-var th='';
-(d.transactions||[]).forEach(function(x){ th+='<div class="tx"><b>'+(x.code||'')+'</b> - '+(x.amount||0)+' BIF - Komisiyo: <b>'+(x.super_share||x.commission||0)+' BIF</b></div>'; });
-document.getElementById('txList').innerHTML=th||'Nta transaction';
-var ah='';
-(d.agents||[]).forEach(function(x){ ah+='<div class="tx"><b>'+x.full_name+'</b> - '+x.phone+' | Province: '+(x.province||'Burundi')+'<br>Komisiyo: '+(x.wallet_balance||0)+' BIF</div>'; });
-document.getElementById('agentList').innerHTML=ah||'Nta Agent urafise';
-}catch(e){}
-}
-async function requestWithdraw(){
-var amount=document.getElementById('withdrawAmount').value;
-var method=document.getElementById('withdrawMethod').value;
-var m=document.getElementById('withdrawMsg');
-if(!amount||Number(amount)<5000){ m.className='msg error'; m.textContent='Minimum ni 5,000 BIF!'; return; }
-try{
-var r=await fetch('/api/withdraw/super',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({super_id:superId,amount,method})});
-var d=await r.json();
-m.className=r.ok?'msg success':'msg error';
-m.textContent=d.message;
-if(r.ok) loadDashboard();
-}catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; }
-}
+async function loginSuper(){ var first=document.getElementById('loginFirstName').value.trim(); var last=document.getElementById('loginLastName').value.trim(); var full_name=(first+' '+last).trim(); var code=document.getElementById('loginCountryCode').value; var raw=document.getElementById('loginPhone').value.trim().replace(/[\s\-]/g,''); var phone=code+raw.replace(/^0+/,''); var password=document.getElementById('loginPassword').value; var m=document.getElementById('loginMsg'); if(!first||!last||!raw||!password){ m.className='msg error'; m.textContent='Uzuza Izina, Amatazirano, Numero na Password!'; return; } if(!/^[0-9]{4}$/.test(password)){ m.className='msg error'; m.textContent='Password igomba kuba IBHARURO 4 GUSA!'; return; } try{ var r=await fetch('/api/super/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name,phone,password})}); var d=await r.json(); if(!r.ok){ m.className='msg error'; m.textContent=d.message||'Izina / Numero / Password nabi!'; return; } superId=d.super_agent.id; document.getElementById('loginCard').style.display='none'; document.getElementById('dashCard').style.display='block'; loadDashboard(); }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; } }
+async function loadDashboard(){ try{ var r=await fetch('/api/super/dashboard/'+superId); var d=await r.json(); var s=d.super_agent; document.getElementById('dashName').textContent='Murakaza neza, '+s.full_name+'!'; document.getElementById('dashInfo').textContent=s.phone+' | Province: '+(s.province||'Burundi'); document.getElementById('dashBalance').textContent=(s.balance||s.wallet_balance||0)+' BIF'; document.getElementById('statEarned').textContent=(s.total_earned||0)+' BIF'; document.getElementById('statWithdrawn').textContent=(s.total_withdrawn||0)+' BIF'; document.getElementById('statCount').textContent=(d.transactions||[]).length; var wh=''; (d.withdrawals||[]).forEach(function(x){ wh+='<div class="tx"><b>'+x.amount+' BIF</b> - '+x.method+' - <span class="badge '+x.status+'">'+x.status.toUpperCase()+'</span></div>'; }); document.getElementById('withdrawList').innerHTML=wh||'Nta demande'; var th=''; (d.transactions||[]).forEach(function(x){ th+='<div class="tx"><b>'+(x.code||'')+'</b> - '+(x.amount||0)+' BIF - Komisiyo: <b>'+(x.super_share||x.commission||0)+' BIF</b></div>'; }); document.getElementById('txList').innerHTML=th||'Nta transaction'; var ah=''; (d.agents||[]).forEach(function(x){ ah+='<div class="tx"><b>'+x.full_name+'</b> - '+x.phone+' | Province: '+(x.province||'Burundi')+'<br>Komisiyo: '+(x.wallet_balance||0)+' BIF</div>'; }); document.getElementById('agentList').innerHTML=ah||'Nta Agent urafise'; }catch(e){} }
+async function requestWithdraw(){ var amount=document.getElementById('withdrawAmount').value; var method=document.getElementById('withdrawMethod').value; var m=document.getElementById('withdrawMsg'); if(!amount||Number(amount)<5000){ m.className='msg error'; m.textContent='Minimum ni 5,000 BIF!'; return; } try{ var r=await fetch('/api/withdraw/super',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({super_id:superId,amount,method})}); var d=await r.json(); m.className=r.ok?'msg success':'msg error'; m.textContent=d.message; if(r.ok) loadDashboard(); }catch(e){ m.className='msg error'; m.textContent='Habaye ikibazo'; } }
 function logout(){ if(confirm('Urahamya ko ushaka gusohoka?')) location.reload(); }
-</script>
-</body>
-</html>
+</script></body></html>
