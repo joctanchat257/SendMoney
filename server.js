@@ -1,11 +1,11 @@
-const express = require("express");
+const 【entity-express¦canonical_name=express】 = require("【entity-express¦canonical_name=express】");
 const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
-const app = express();
+const app = 【entity-express¦canonical_name=express】();
 app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
+app.use(【entity-express¦canonical_name=express】.json());
+app.use(【entity-express¦canonical_name=express】.static(__dirname));
 const PORT = process.env.PORT || 3000;
 const BONUS_AMOUNT = 10000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Joc7777777";
@@ -14,6 +14,12 @@ const AGENT_SHARE = 0.6;
 const SUPER_SHARE = 0.2;
 const PLATFORM_SHARE = 0.2;
 const MIN_WITHDRAW = 5000;
+// ===== LIMITE NSHASHA - KURI BOSE =====
+const MAX_SEND_ONE = 200000;
+const MAX_SEND_PER_DAY = 500000;
+const MAX_AGENT_COMMISSION_PER_DAY = 50000;
+const MAX_SUPER_COMMISSION_PER_DAY = 30000;
+const MAX_WITHDRAW_PER_DAY = 100000;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgresql://localhost:5432/sendmoney", ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false });
 async function initDB() {
   try {
@@ -172,6 +178,10 @@ app.post("/api/send", async (req, res) => {
     const { from_customer_id, to_phone, amount } = req.body;
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ message: "Amount nabi!" });
+    if (amt > MAX_SEND_ONE) return res.status(400).json({ message: "LIMITE! Nturenza kurungika " + MAX_SEND_ONE + " BIF rimwe! Rungika mu nshuro 2." });
+    const today = await pool.query("SELECT COALESCE(SUM(amount),0) as total FROM transactions WHERE from_customer_id=$1 AND DATE(created_at)=CURRENT_DATE", [from_customer_id]);
+    const todayTotal = Number(today.rows[0].total || 0);
+    if (todayTotal + amt > MAX_SEND_PER_DAY) return res.status(400).json({ message: "LIMITE KU MUSI! Urarungitse " + todayTotal + " BIF uyu musi. Usigaje " + (MAX_SEND_PER_DAY - todayTotal) + " BIF gusa! Maximum ku musi ni " + MAX_SEND_PER_DAY + " BIF." });
     const sender = await pool.query("SELECT c.*, w.balance, w.bonus_locked, w.airtime_count FROM customers c LEFT JOIN wallets w ON w.customer_id=c.id WHERE c.id=$1", [from_customer_id]);
     if (!sender.rows.length) return res.status(400).json({ message: "Sender ntabaho" });
     const s = sender.rows[0];
@@ -190,9 +200,9 @@ app.post("/api/send", async (req, res) => {
     } else receiverId = receiver.rows[0].id;
     const fee = Math.round(amt * FEE_RATE);
     const net = amt - fee;
-    const agentShare = Math.round(fee * AGENT_SHARE);
-    const superShare = Math.round(fee * SUPER_SHARE);
-    const platShare = fee - agentShare - superShare;
+    let agentShare = Math.round(fee * AGENT_SHARE);
+    let superShare = Math.round(fee * SUPER_SHARE);
+    let platShare = fee - agentShare - superShare;
     const code = genCode();
     await pool.query("UPDATE wallets SET balance = balance - $1 WHERE customer_id=$2", [amt, from_customer_id]);
     await pool.query("UPDATE customers SET balance = balance - $1 WHERE id=$2", [amt, from_customer_id]);
@@ -200,15 +210,27 @@ app.post("/api/send", async (req, res) => {
     await pool.query("UPDATE customers SET balance = balance + $1 WHERE id=$2", [net, receiverId]);
     const agent = await pool.query("SELECT * FROM agents WHERE status='approved' ORDER BY id ASC LIMIT 1");
     if (agent.rows.length) {
+      const agentToday = await pool.query("SELECT COALESCE(SUM(agent_share),0) as total FROM transactions WHERE DATE(created_at)=CURRENT_DATE");
+      const agentTodayTotal = Number(agentToday.rows[0].total || 0);
+      const agentRemaining = Math.max(0, MAX_AGENT_COMMISSION_PER_DAY - agentTodayTotal);
+      if (agentShare > agentRemaining) { const excess = agentShare - agentRemaining; agentShare = agentRemaining; platShare += excess; }
       await pool.query("UPDATE agents SET wallet_balance = wallet_balance + $1, total_earned = total_earned + $1 WHERE id=$2", [agentShare, agent.rows[0].id]);
-      if (agent.rows[0].super_agent_id) { await pool.query("UPDATE super_agents SET balance = balance + $1, total_earned = total_earned + $1 WHERE id=$2", [superShare, agent.rows[0].super_agent_id]); }
-      else { await pool.query("UPDATE platform_wallet SET balance = balance + $1, total_earned = total_earned + $1 WHERE id=1", [superShare + platShare]); }
+      if (agent.rows[0].super_agent_id) {
+        const superToday = await pool.query("SELECT COALESCE(SUM(super_share),0) as total FROM transactions WHERE DATE(created_at)=CURRENT_DATE");
+        const superTodayTotal = Number(superToday.rows[0].total || 0);
+        const superRemaining = Math.max(0, MAX_SUPER_COMMISSION_PER_DAY - superTodayTotal);
+        if (superShare > superRemaining) { const excess2 = superShare - superRemaining; superShare = superRemaining; platShare += excess2; }
+        await pool.query("UPDATE super_agents SET balance = balance + $1, total_earned = total_earned + $1 WHERE id=$2", [superShare, agent.rows[0].super_agent_id]);
+      } else { platShare += superShare; superShare = 0; }
       await pool.query("UPDATE platform_wallet SET balance = balance + $1, total_earned = total_earned + $1 WHERE id=1", [platShare]);
     } else {
       await pool.query("UPDATE platform_wallet SET balance = balance + $1, total_earned = total_earned + $1 WHERE id=1", [fee]);
+      agentShare = 0; superShare = 0; platShare = fee;
     }
     await pool.query("INSERT INTO transactions (code, from_customer_id, to_customer_id, from_phone, to_phone, amount, fee, net_amount, type, method, channel, status, agent_share, super_share, platform_share) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'transfer','Lumicash','Lumicash','completed',$9,$10,$11)", [code, from_customer_id, receiverId, s.phone, p, amt, fee, net, agentShare, superShare, platShare]);
-    res.json({ message: "Vyagenze! " + amt + " BIF yoherejwe. Fee: " + fee + " BIF. Uwakira yaronse " + net + " BIF. Code: " + code, code, fee, net });
+    let limitMsg = "";
+    if (agentShare === 0 && fee > 0) limitMsg = " Agent yageze kuri Limite 50,000 BIF uyu musi - Komisiyo yagiye muri Platform.";
+    res.json({ message: "Vyagenze! " + amt + " BIF yoherejwe. Fee: " + fee + " BIF. Uwakira yaronse " + net + " BIF. Code: " + code + limitMsg, code, fee, net });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.post("/api/airtime", async (req, res) => {
@@ -216,6 +238,7 @@ app.post("/api/airtime", async (req, res) => {
     const { customerId, phone, amount, operator } = req.body;
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ message: "Amount nabi!" });
+    if (amt > MAX_SEND_ONE) return res.status(400).json({ message: "LIMITE! Nturenza kugura Unites " + MAX_SEND_ONE + " BIF rimwe!" });
     const op = operator || "Lumicash";
     const r = await pool.query("SELECT c.*, w.balance, w.bonus_locked, w.airtime_count FROM customers c LEFT JOIN wallets w ON w.customer_id=c.id WHERE c.id=$1", [customerId]);
     if (!r.rows.length) return res.status(400).json({ message: "Client ntabaho" });
@@ -311,6 +334,9 @@ app.post("/api/withdraw/agent", async (req, res) => {
     const { agent_id, amount, method } = req.body;
     const amt = Number(amount);
     if (!amt || amt < MIN_WITHDRAW) return res.status(400).json({ message: "Minimum ni " + MIN_WITHDRAW + " BIF!" });
+    if (amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: "LIMITE! Nturenza kurotira " + MAX_WITHDRAW_PER_DAY + " BIF ku musi!" });
+    const todayW = await pool.query("SELECT COALESCE(SUM(amount),0) as total FROM withdrawals WHERE user_type='agent' AND user_id=$1 AND DATE(created_at)=CURRENT_DATE AND status!='rejected'", [agent_id]);
+    if (Number(todayW.rows[0].total || 0) + amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: "LIMITE KU MUSI! Uraroiye " + todayW.rows[0].total + " BIF uyu musi. Usigaje " + (MAX_WITHDRAW_PER_DAY - Number(todayW.rows[0].total || 0)) + " BIF!" });
     const a = await pool.query("SELECT * FROM agents WHERE id=$1", [agent_id]);
     if (!a.rows.length) return res.status(404).json({ message: "Agent ntabaho" });
     if (Number(a.rows[0].wallet_balance || 0) < amt) return res.status(400).json({ message: "Balance ntabwo ihagije! Balance: " + a.rows[0].wallet_balance + " BIF" });
@@ -323,6 +349,9 @@ app.post("/api/withdraw/super", async (req, res) => {
     const { super_id, amount, method } = req.body;
     const amt = Number(amount);
     if (!amt || amt < MIN_WITHDRAW) return res.status(400).json({ message: "Minimum ni " + MIN_WITHDRAW + " BIF!" });
+    if (amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: "LIMITE! Nturenza kurotira " + MAX_WITHDRAW_PER_DAY + " BIF ku musi!" });
+    const todayW = await pool.query("SELECT COALESCE(SUM(amount),0) as total FROM withdrawals WHERE user_type='super' AND user_id=$1 AND DATE(created_at)=CURRENT_DATE AND status!='rejected'", [super_id]);
+    if (Number(todayW.rows[0].total || 0) + amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: "LIMITE KU MUSI! Uraroiye " + todayW.rows[0].total + " BIF uyu musi!" });
     const s = await pool.query("SELECT * FROM super_agents WHERE id=$1", [super_id]);
     if (!s.rows.length) return res.status(404).json({ message: "Super Agent ntabaho" });
     if (Number(s.rows[0].balance || 0) < amt) return res.status(400).json({ message: "Balance ntabwo ihagije! Balance: " + s.rows[0].balance + " BIF" });
