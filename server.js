@@ -9,6 +9,7 @@ app.use(express.static(__dirname));
 const PORT = process.env.PORT || 3000;
 const BONUS_AMOUNT = 10000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Joc7777777';
+const ADMIN_2FA_CODE = process.env.ADMIN_2FA_CODE || '2580';
 const FEE_RATE = 0.02;
 const AGENT_SHARE = 0.6;
 const SUPER_SHARE = 0.2;
@@ -81,6 +82,14 @@ app.get('/api/customers', async (req, res) => {
     res.json({ customers: r.rows });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
+app.get('/api/customer-by-phone/:phone', async (req, res) => {
+  try {
+    const p = normPhone(req.params.phone);
+    const r = await pool.query('SELECT full_name, phone, status FROM customers WHERE phone=$1', [p]);
+    if (!r.rows.length) return res.json({ found: false, message: 'Iyi numero ntiyanditswe!' });
+    res.json({ found: true, full_name: r.rows[0].full_name, phone: r.rows[0].phone, status: r.rows[0].status });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
 app.patch('/api/customers/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
@@ -116,7 +125,7 @@ app.post('/api/login', async (req, res) => {
       const fails = (c.failed_attempts || 0) + 1;
       if (fails >= 4) { await pool.query("UPDATE customers SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, c.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yawe yahagaritswe amasaha 24! Garuka ejo.' }); }
       await pool.query('UPDATE customers SET failed_attempts=$1 WHERE id=$2', [fails, c.id]);
-      return res.status(400).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - fails) + ' gusa! Niwakora ikosa 4, uzotegereza amasaha 24!' });
+      return res.status(400).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - fails) + ' gusa!' });
     }
     await pool.query('UPDATE customers SET failed_attempts=0, blocked_until=NULL WHERE id=$1', [c.id]);
     if (c.status !== 'approved') return res.status(403).json({ message: 'Compte yawe ntiremejwe na Admin. Tegereza!' });
@@ -136,7 +145,7 @@ app.post('/api/forgot-password-request', async (req, res) => {
     if ((c.full_name || '').toLowerCase().trim() !== (full_name || '').toLowerCase().trim()) return res.status(400).json({ message: 'Izina ntirihuye na numero!' });
     const code = genResetCode();
     await pool.query("INSERT INTO reset_requests (customer_id, full_name, phone, code, status) VALUES ($1,$2,$3,$4,'pending')", [c.id, c.full_name, p, code]);
-    res.json({ message: 'Demande yoherejwe! Tegereza Admin aguhamagare. NTUKEMEZE ako kanya - Tegereza iminota 5! Admin azoguhamagara kuri ' + p });
+    res.json({ message: 'Demande yoherejwe! Tegereza Admin aguhamagare. Tegereza iminota 5!' });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.post('/api/reset-password-confirm', async (req, res) => {
@@ -145,7 +154,7 @@ app.post('/api/reset-password-confirm', async (req, res) => {
     const p = normPhone(phone);
     if (!/^[0-9]{4}$/.test(newPassword || '')) return res.status(400).json({ message: 'Password nshasha = IBHARURO 4 GUSA!' });
     const r = await pool.query("SELECT * FROM reset_requests WHERE phone=$1 AND code=$2 AND status='approved' ORDER BY created_at DESC LIMIT 1", [p, code]);
-    if (!r.rows.length) return res.status(400).json({ message: 'Code nabi canke ntiyemejwe na Admin! Banza usabe Admin.' });
+    if (!r.rows.length) return res.status(400).json({ message: 'Code nabi canke ntiyemejwe na Admin!' });
     await pool.query('UPDATE customers SET password=$1 WHERE phone=$2', [newPassword, p]);
     await pool.query("UPDATE reset_requests SET status='used' WHERE id=$1", [r.rows[0].id]);
     res.json({ message: 'Password yahindutse neza! Injira na password nshasha.' });
@@ -167,12 +176,12 @@ app.get('/api/admin/reset-requests', async (req, res) => {
 app.post('/api/admin/reset-requests/:id/approve', async (req, res) => {
   try {
     const { verifiedCall, verifiedQuestion } = req.body;
-    if (!verifiedCall || !verifiedQuestion) return res.status(400).json({ message: 'Banza UHAMAGARE uwusaba + UMUBAZE Ibibazo 5 vyHistorique! NTUKEMEZE ako kanya!' });
+    if (!verifiedCall || !verifiedQuestion) return res.status(400).json({ message: 'Banza UHAMAGARE + UMUBAZE Ibibazo 5!' });
     const r = await pool.query('SELECT * FROM reset_requests WHERE id=$1', [req.params.id]);
     if (!r.rows.length) return res.status(404).json({ message: 'Demande ntabaho' });
     const created = new Date(r.rows[0].created_at);
     const diffMin = (Date.now() - created.getTime()) / 60000;
-    if (diffMin < 5) return res.status(400).json({ message: 'TEGEREZA! Demande imaze iminota ' + Math.floor(diffMin) + ' gusa. Tegereza iminota 5! Umujura ashaka vuba!' });
+    if (diffMin < 5) return res.status(400).json({ message: 'TEGEREZA! Demande imaze iminota ' + Math.floor(diffMin) + ' gusa. Tegereza iminota 5!' });
     await pool.query("UPDATE reset_requests SET status='approved', verified_call=true, verified_question=true WHERE id=$1", [req.params.id]);
     res.json({ message: 'Yemerejwe! Bwira umukiriya Code: ' + r.rows[0].code + ' - KURI TELEPHONE GUSA!' });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -183,18 +192,18 @@ app.post('/api/send', async (req, res) => {
     const { from_customer_id, to_phone, amount } = req.body;
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ message: 'Amount nabi!' });
-    if (amt > MAX_SEND_ONE) return res.status(400).json({ message: 'LIMITE! Nturenza kurungika ' + MAX_SEND_ONE + ' BIF rimwe! Rungika mu nshuro 2.' });
+    if (amt > MAX_SEND_ONE) return res.status(400).json({ message: 'LIMITE! Nturenza kurungika ' + MAX_SEND_ONE + ' BIF rimwe!' });
     const today = await pool.query('SELECT COALESCE(SUM(amount),0) as total FROM transactions WHERE from_customer_id=$1 AND DATE(created_at)=CURRENT_DATE', [from_customer_id]);
     const todayTotal = Number(today.rows[0].total || 0);
-    if (todayTotal + amt > MAX_SEND_PER_DAY) return res.status(400).json({ message: 'LIMITE KU MUSI! Urarungitse ' + todayTotal + ' BIF uyu musi. Usigaje ' + (MAX_SEND_PER_DAY - todayTotal) + ' BIF gusa! Maximum ku musi ni ' + MAX_SEND_PER_DAY + ' BIF.' });
+    if (todayTotal + amt > MAX_SEND_PER_DAY) return res.status(400).json({ message: 'LIMITE KU MUSI! Urarungitse ' + todayTotal + ' BIF uyu musi. Usigaje ' + (MAX_SEND_PER_DAY - todayTotal) + ' BIF!' });
     const sender = await pool.query('SELECT c.*, w.balance, w.bonus_locked, w.airtime_count FROM customers c LEFT JOIN wallets w ON w.customer_id=c.id WHERE c.id=$1', [from_customer_id]);
     if (!sender.rows.length) return res.status(400).json({ message: 'Sender ntabaho' });
     const s = sender.rows[0];
     if (s.status !== 'approved') return res.status(403).json({ message: 'Compte yawe ntiremejwe!' });
     if (s.blocked) return res.status(403).json({ message: 'Compte yahagaritswe!' });
-    if (s.bonus_locked) return res.status(400).json({ message: 'Bonus yawe ifunzwe! Gura Unites inshuro ' + (2 - (s.airtime_count || 0)) + ' zikurikira kugira ifunguke!' });
+    if (s.bonus_locked) return res.status(400).json({ message: 'Bonus yawe ifunzwe! Gura Unites inshuro ' + (2 - (s.airtime_count || 0)) + ' zikurikira!' });
     const walletBal = Number(s.balance || 0);
-    if (walletBal < amt) return res.status(400).json({ message: 'Balance ntabwo ihagije! Balance yawe: ' + walletBal + ' BIF' });
+    if (walletBal < amt) return res.status(400).json({ message: 'Balance ntabwo ihagije! Balance: ' + walletBal + ' BIF' });
     const p = normPhone(to_phone);
     let receiver = await pool.query('SELECT * FROM customers WHERE phone=$1', [p]);
     let receiverId = null;
@@ -233,9 +242,7 @@ app.post('/api/send', async (req, res) => {
       agentShare = 0; superShare = 0; platShare = fee;
     }
     await pool.query("INSERT INTO transactions (code, from_customer_id, to_customer_id, from_phone, to_phone, amount, fee, net_amount, type, method, channel, status, agent_share, super_share, platform_share) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'transfer','Lumicash','Lumicash','completed',$9,$10,$11)", [code, from_customer_id, receiverId, s.phone, p, amt, fee, net, agentShare, superShare, platShare]);
-    let limitMsg = '';
-    if (agentShare === 0 && fee > 0) limitMsg = ' Agent yageze kuri Limite 50,000 BIF uyu musi - Komisiyo yagiye muri Platform.';
-    res.json({ message: 'Vyagenze! ' + amt + ' BIF yoherejwe. Fee: ' + fee + ' BIF. Uwakira yaronse ' + net + ' BIF. Code: ' + code + limitMsg, code, fee, net });
+    res.json({ message: 'Vyagenze! ' + amt + ' BIF yoherejwe. Fee: ' + fee + ' BIF. Uwakira yaronse ' + net + ' BIF. Code: ' + code, code, fee, net });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.post('/api/airtime', async (req, res) => {
@@ -243,7 +250,7 @@ app.post('/api/airtime', async (req, res) => {
     const { customerId, phone, amount, operator } = req.body;
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ message: 'Amount nabi!' });
-    if (amt > MAX_SEND_ONE) return res.status(400).json({ message: 'LIMITE! Nturenza kugura Unites ' + MAX_SEND_ONE + ' BIF rimwe!' });
+    if (amt > MAX_SEND_ONE) return res.status(400).json({ message: 'LIMITE! Nturenza ' + MAX_SEND_ONE + ' BIF!' });
     const op = operator || 'Lumicash';
     const r = await pool.query('SELECT c.*, w.balance, w.bonus_locked, w.airtime_count FROM customers c LEFT JOIN wallets w ON w.customer_id=c.id WHERE c.id=$1', [customerId]);
     if (!r.rows.length) return res.status(400).json({ message: 'Client ntabaho' });
@@ -259,7 +266,7 @@ app.post('/api/airtime', async (req, res) => {
     if (cnt >= 2 && c.bonus_locked) {
       await pool.query('UPDATE wallets SET bonus_locked=false WHERE customer_id=$1', [customerId]);
       await pool.query('UPDATE customers SET bonus_locked=false WHERE id=$1', [customerId]);
-      msg += ' BONUS YAWE IRAFUNGUTSE! Ushobora kurungika ubu!';
+      msg += ' BONUS YAWE IRAFUNGUTSE!';
     } else if (cnt < 2) { msg += ' Usigaje inshuro ' + (2 - cnt) + ' kugira Bonus ifunguke.'; }
     res.json({ message: msg });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -288,7 +295,7 @@ app.post('/api/agent/login', async (req, res) => {
     if (a.blocked_until && new Date(a.blocked_until) > new Date()) return res.status(403).json({ message: 'Compte yawe yahagaritswe amasaha 24! Garuka ejo.' });
     if (a.password !== password) {
       const fails = (a.failed_attempts || 0) + 1;
-      if (fails >= 4) { await pool.query("UPDATE agents SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, a.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yawe yahagaritswe amasaha 24! Garuka ejo.' }); }
+      if (fails >= 4) { await pool.query("UPDATE agents SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, a.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yahagaritswe amasaha 24!' }); }
       await pool.query('UPDATE agents SET failed_attempts=$1 WHERE id=$2', [fails, a.id]);
       return res.status(400).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - fails) + ' gusa!' });
     }
@@ -326,11 +333,11 @@ app.post('/api/super/login', async (req, res) => {
     const r = await pool.query('SELECT * FROM super_agents WHERE phone=$1', [p]);
     if (!r.rows.length) return res.status(400).json({ message: 'Super Agent ntabaho!' });
     const s = r.rows[0];
-    if (s.blocked_until && new Date(s.blocked_until) > new Date()) return res.status(403).json({ message: 'Compte yawe yahagaritswe amasaha 24! Garuka ejo.' });
+    if (s.blocked_until && new Date(s.blocked_until) > new Date()) return res.status(403).json({ message: 'Compte yahagaritswe amasaha 24! Garuka ejo.' });
     if ((s.full_name || '').toLowerCase().trim() !== (full_name || '').toLowerCase().trim()) return res.status(400).json({ message: 'Izina / Amatazirano nabi!' });
     if (s.password !== password) {
       const fails = (s.failed_attempts || 0) + 1;
-      if (fails >= 4) { await pool.query("UPDATE super_agents SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, s.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yawe yahagaritswe amasaha 24! Garuka ejo.' }); }
+      if (fails >= 4) { await pool.query("UPDATE super_agents SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, s.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yahagaritswe amasaha 24!' }); }
       await pool.query('UPDATE super_agents SET failed_attempts=$1 WHERE id=$2', [fails, s.id]);
       return res.status(400).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - fails) + ' gusa!' });
     }
@@ -353,14 +360,14 @@ app.post('/api/withdraw/agent', async (req, res) => {
     const { agent_id, amount, method } = req.body;
     const amt = Number(amount);
     if (!amt || amt < MIN_WITHDRAW) return res.status(400).json({ message: 'Minimum ni ' + MIN_WITHDRAW + ' BIF!' });
-    if (amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE! Nturenza kurotira ' + MAX_WITHDRAW_PER_DAY + ' BIF ku musi!' });
+    if (amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE! Nturenza ' + MAX_WITHDRAW_PER_DAY + ' BIF ku musi!' });
     const todayW = await pool.query("SELECT COALESCE(SUM(amount),0) as total FROM withdrawals WHERE user_type='agent' AND user_id=$1 AND DATE(created_at)=CURRENT_DATE AND status!='rejected'", [agent_id]);
-    if (Number(todayW.rows[0].total || 0) + amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE KU MUSI! Uraroiye ' + todayW.rows[0].total + ' BIF uyu musi. Usigaje ' + (MAX_WITHDRAW_PER_DAY - Number(todayW.rows[0].total || 0)) + ' BIF!' });
+    if (Number(todayW.rows[0].total || 0) + amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE KU MUSI! Uraroiye ' + todayW.rows[0].total + ' BIF uyu musi!' });
     const a = await pool.query('SELECT * FROM agents WHERE id=$1', [agent_id]);
     if (!a.rows.length) return res.status(404).json({ message: 'Agent ntabaho' });
-    if (Number(a.rows[0].wallet_balance || 0) < amt) return res.status(400).json({ message: 'Balance ntabwo ihagije! Balance: ' + a.rows[0].wallet_balance + ' BIF' });
+    if (Number(a.rows[0].wallet_balance || 0) < amt) return res.status(400).json({ message: 'Balance ntabwo ihagije!' });
     await pool.query("INSERT INTO withdrawals (user_type, user_id, user_name, amount, method, status) VALUES ('agent',$1,$2,$3,$4,'pending')", [agent_id, a.rows[0].full_name, amt, method || 'Lumicash']);
-    res.json({ message: 'Demande yo kurotira ' + amt + ' BIF yoherejwe! Tegereza Admin yemeze.' });
+    res.json({ message: 'Demande yo kurotira ' + amt + ' BIF yoherejwe!' });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.post('/api/withdraw/super', async (req, res) => {
@@ -368,14 +375,14 @@ app.post('/api/withdraw/super', async (req, res) => {
     const { super_id, amount, method } = req.body;
     const amt = Number(amount);
     if (!amt || amt < MIN_WITHDRAW) return res.status(400).json({ message: 'Minimum ni ' + MIN_WITHDRAW + ' BIF!' });
-    if (amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE! Nturenza kurotira ' + MAX_WITHDRAW_PER_DAY + ' BIF ku musi!' });
+    if (amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE! Nturenza ' + MAX_WITHDRAW_PER_DAY + ' BIF ku musi!' });
     const todayW = await pool.query("SELECT COALESCE(SUM(amount),0) as total FROM withdrawals WHERE user_type='super' AND user_id=$1 AND DATE(created_at)=CURRENT_DATE AND status!='rejected'", [super_id]);
-    if (Number(todayW.rows[0].total || 0) + amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE KU MUSI! Uraroiye ' + todayW.rows[0].total + ' BIF uyu musi!' });
+    if (Number(todayW.rows[0].total || 0) + amt > MAX_WITHDRAW_PER_DAY) return res.status(400).json({ message: 'LIMITE KU MUSI!' });
     const s = await pool.query('SELECT * FROM super_agents WHERE id=$1', [super_id]);
     if (!s.rows.length) return res.status(404).json({ message: 'Super Agent ntabaho' });
-    if (Number(s.rows[0].balance || 0) < amt) return res.status(400).json({ message: 'Balance ntabwo ihagije! Balance: ' + s.rows[0].balance + ' BIF' });
+    if (Number(s.rows[0].balance || 0) < amt) return res.status(400).json({ message: 'Balance ntabwo ihagije!' });
     await pool.query("INSERT INTO withdrawals (user_type, user_id, user_name, amount, method, status) VALUES ('super',$1,$2,$3,$4,'pending')", [super_id, s.rows[0].full_name, amt, method || 'Lumicash']);
-    res.json({ message: 'Demande yo kurotira ' + amt + ' BIF yoherejwe! Tegereza Admin yemeze.' });
+    res.json({ message: 'Demande yo kurotira ' + amt + ' BIF yoherejwe!' });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.post('/api/withdraw/platform', async (req, res) => {
@@ -407,12 +414,17 @@ app.post('/api/withdrawals/:id/reject', async (req, res) => { await pool.query("
 app.get('/api/platform/balance', async (req, res) => { try { const r = await pool.query('SELECT * FROM platform_wallet WHERE id=1'); res.json({ wallet: r.rows[0] }); } catch (e) { res.status(500).json({ message: e.message }); } });
 app.post('/api/admin/check', async (req, res) => {
   try {
-    if (adminBlockedUntil && new Date() < adminBlockedUntil) { const left = Math.ceil((adminBlockedUntil - new Date()) / 60000); return res.status(403).json({ message: 'Admin yahagaritswe iminota ' + left + ' isigaye! Tegereza gato.' }); }
-    const { password } = req.body;
-    if (password === ADMIN_PASSWORD) { adminFailed = 0; adminBlockedUntil = null; return res.json({ ok: true, message: 'Murakaza neza, Joctan!' }); }
-    adminFailed += 1;
-    if (adminFailed >= 4) { adminBlockedUntil = new Date(Date.now() + 30 * 60000); adminFailed = 0; return res.status(403).json({ message: 'Wagerageje inshuro 4! Admin yahagaritswe iminota 30! Tegereza.' }); }
-    res.status(401).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - adminFailed) + ' gusa!' });
+    if (adminBlockedUntil && new Date() < adminBlockedUntil) { const left = Math.ceil((adminBlockedUntil - new Date()) / 60000); return res.status(403).json({ message: 'Admin yahagaritswe iminota ' + left + ' isigaye!' }); }
+    const { password, code2fa } = req.body;
+    if (password !== ADMIN_PASSWORD) {
+      adminFailed += 1;
+      if (adminFailed >= 4) { adminBlockedUntil = new Date(Date.now() + 30 * 60000); adminFailed = 0; return res.status(403).json({ message: 'Wagerageje inshuro 4! Admin yahagaritswe iminota 30!' }); }
+      return res.status(401).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - adminFailed) + ' gusa!' });
+    }
+    if (!code2fa) return res.json({ need2fa: true, message: 'Password ni yo! Shiramwo Code ya 2FA.' });
+    if (String(code2fa) !== String(ADMIN_2FA_CODE)) return res.status(401).json({ message: 'Code ya 2FA nabi!' });
+    adminFailed = 0; adminBlockedUntil = null;
+    return res.json({ ok: true, message: 'Murakaza neza, Joctan!' });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
