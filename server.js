@@ -19,6 +19,8 @@ const MAX_SEND_PER_DAY = 500000;
 const MAX_AGENT_COMMISSION_PER_DAY = 50000;
 const MAX_SUPER_COMMISSION_PER_DAY = 30000;
 const MAX_WITHDRAW_PER_DAY = 100000;
+let adminFailed = 0;
+let adminBlockedUntil = null;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/sendmoney', ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false });
 async function initDB() {
   try {
@@ -26,8 +28,8 @@ async function initDB() {
     await pool.query(`CREATE TABLE IF NOT EXISTS wallets (id SERIAL PRIMARY KEY, customer_id INTEGER UNIQUE REFERENCES customers(id) ON DELETE CASCADE, balance NUMERIC DEFAULT 0, bonus_amount NUMERIC DEFAULT 0, bonus_locked BOOLEAN DEFAULT true, airtime_count INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS transactions (id SERIAL PRIMARY KEY, code TEXT, from_customer_id INTEGER, to_customer_id INTEGER, from_phone TEXT, to_phone TEXT, amount NUMERIC, fee NUMERIC, net_amount NUMERIC, type TEXT, method TEXT, channel TEXT DEFAULT 'Lumicash', status TEXT DEFAULT 'completed', agent_share NUMERIC DEFAULT 0, super_share NUMERIC DEFAULT 0, platform_share NUMERIC DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS airtime_purchases (id SERIAL PRIMARY KEY, customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE, phone TEXT, amount NUMERIC, operator TEXT DEFAULT 'Lumicash', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS agents (id SERIAL PRIMARY KEY, full_name TEXT, phone TEXT UNIQUE, province TEXT DEFAULT 'Burundi', password TEXT, status TEXT DEFAULT 'pending', wallet_balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, super_agent_id INTEGER, created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS super_agents (id SERIAL PRIMARY KEY, full_name TEXT, phone TEXT UNIQUE, province TEXT DEFAULT 'Burundi', password TEXT, status TEXT DEFAULT 'approved', balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS agents (id SERIAL PRIMARY KEY, full_name TEXT, phone TEXT UNIQUE, province TEXT DEFAULT 'Burundi', password TEXT, status TEXT DEFAULT 'pending', wallet_balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, super_agent_id INTEGER, failed_attempts INTEGER DEFAULT 0, blocked_until TIMESTAMP, created_at TIMESTAMP DEFAULT NOW())`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS super_agents (id SERIAL PRIMARY KEY, full_name TEXT, phone TEXT UNIQUE, province TEXT DEFAULT 'Burundi', password TEXT, status TEXT DEFAULT 'approved', balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, failed_attempts INTEGER DEFAULT 0, blocked_until TIMESTAMP, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS withdrawals (id SERIAL PRIMARY KEY, user_type TEXT, user_id INTEGER, user_name TEXT, amount NUMERIC, method TEXT DEFAULT 'Lumicash', status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS reset_requests (id SERIAL PRIMARY KEY, customer_id INTEGER, full_name TEXT, phone TEXT, code TEXT, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW(), verified_call BOOLEAN DEFAULT false, verified_question BOOLEAN DEFAULT false)`);
     await pool.query(`CREATE TABLE IF NOT EXISTS platform_wallet (id SERIAL PRIMARY KEY, balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, updated_at TIMESTAMP DEFAULT NOW())`);
@@ -46,8 +48,12 @@ async function initDB() {
     await pool.query(`ALTER TABLE agents ADD COLUMN IF NOT EXISTS super_agent_id INTEGER`);
     await pool.query(`ALTER TABLE agents ADD COLUMN IF NOT EXISTS total_earned NUMERIC DEFAULT 0`);
     await pool.query(`ALTER TABLE agents ADD COLUMN IF NOT EXISTS total_withdrawn NUMERIC DEFAULT 0`);
+    await pool.query(`ALTER TABLE agents ADD COLUMN IF NOT EXISTS failed_attempts INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE agents ADD COLUMN IF NOT EXISTS blocked_until TIMESTAMP`);
     await pool.query(`ALTER TABLE super_agents ADD COLUMN IF NOT EXISTS total_earned NUMERIC DEFAULT 0`);
     await pool.query(`ALTER TABLE super_agents ADD COLUMN IF NOT EXISTS total_withdrawn NUMERIC DEFAULT 0`);
+    await pool.query(`ALTER TABLE super_agents ADD COLUMN IF NOT EXISTS failed_attempts INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE super_agents ADD COLUMN IF NOT EXISTS blocked_until TIMESTAMP`);
     console.log('DB ready - Lumicash / Ecocash');
   } catch (e) { console.log('DB error:', e.message); }
 }
@@ -279,7 +285,14 @@ app.post('/api/agent/login', async (req, res) => {
     const r = await pool.query('SELECT * FROM agents WHERE phone=$1', [p]);
     if (!r.rows.length) return res.status(400).json({ message: 'Agent ntabaho!' });
     const a = r.rows[0];
-    if (a.password !== password) return res.status(400).json({ message: 'Password nabi!' });
+    if (a.blocked_until && new Date(a.blocked_until) > new Date()) return res.status(403).json({ message: 'Compte yawe yahagaritswe amasaha 24! Garuka ejo.' });
+    if (a.password !== password) {
+      const fails = (a.failed_attempts || 0) + 1;
+      if (fails >= 4) { await pool.query("UPDATE agents SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, a.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yawe yahagaritswe amasaha 24! Garuka ejo.' }); }
+      await pool.query('UPDATE agents SET failed_attempts=$1 WHERE id=$2', [fails, a.id]);
+      return res.status(400).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - fails) + ' gusa!' });
+    }
+    await pool.query('UPDATE agents SET failed_attempts=0, blocked_until=NULL WHERE id=$1', [a.id]);
     if (a.status !== 'approved') return res.status(403).json({ message: 'Agent ntaremejwe na Joctan. Tegereza!' });
     res.json({ agent: a });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -313,8 +326,15 @@ app.post('/api/super/login', async (req, res) => {
     const r = await pool.query('SELECT * FROM super_agents WHERE phone=$1', [p]);
     if (!r.rows.length) return res.status(400).json({ message: 'Super Agent ntabaho!' });
     const s = r.rows[0];
+    if (s.blocked_until && new Date(s.blocked_until) > new Date()) return res.status(403).json({ message: 'Compte yawe yahagaritswe amasaha 24! Garuka ejo.' });
     if ((s.full_name || '').toLowerCase().trim() !== (full_name || '').toLowerCase().trim()) return res.status(400).json({ message: 'Izina / Amatazirano nabi!' });
-    if (s.password !== password) return res.status(400).json({ message: 'Password nabi!' });
+    if (s.password !== password) {
+      const fails = (s.failed_attempts || 0) + 1;
+      if (fails >= 4) { await pool.query("UPDATE super_agents SET failed_attempts=$1, blocked_until=NOW() + INTERVAL '24 hours' WHERE id=$2", [fails, s.id]); return res.status(403).json({ message: 'Wagerageje inshuro 4! Compte yawe yahagaritswe amasaha 24! Garuka ejo.' }); }
+      await pool.query('UPDATE super_agents SET failed_attempts=$1 WHERE id=$2', [fails, s.id]);
+      return res.status(400).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - fails) + ' gusa!' });
+    }
+    await pool.query('UPDATE super_agents SET failed_attempts=0, blocked_until=NULL WHERE id=$1', [s.id]);
     res.json({ super_agent: s });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
@@ -385,7 +405,16 @@ app.post('/api/withdrawals/:id/approve', async (req, res) => {
 });
 app.post('/api/withdrawals/:id/reject', async (req, res) => { await pool.query("UPDATE withdrawals SET status='rejected' WHERE id=$1", [req.params.id]); res.json({ message: 'Kurotira kwahakanye' }); });
 app.get('/api/platform/balance', async (req, res) => { try { const r = await pool.query('SELECT * FROM platform_wallet WHERE id=1'); res.json({ wallet: r.rows[0] }); } catch (e) { res.status(500).json({ message: e.message }); } });
-app.post('/api/admin/check', async (req, res) => { const { password } = req.body; if (password === ADMIN_PASSWORD) return res.json({ ok: true, message: 'Murakaza neza, Joctan!' }); res.status(401).json({ message: 'Password nabi!' }); });
+app.post('/api/admin/check', async (req, res) => {
+  try {
+    if (adminBlockedUntil && new Date() < adminBlockedUntil) { const left = Math.ceil((adminBlockedUntil - new Date()) / 60000); return res.status(403).json({ message: 'Admin yahagaritswe iminota ' + left + ' isigaye! Tegereza gato.' }); }
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) { adminFailed = 0; adminBlockedUntil = null; return res.json({ ok: true, message: 'Murakaza neza, Joctan!' }); }
+    adminFailed += 1;
+    if (adminFailed >= 4) { adminBlockedUntil = new Date(Date.now() + 30 * 60000); adminFailed = 0; return res.status(403).json({ message: 'Wagerageje inshuro 4! Admin yahagaritswe iminota 30! Tegereza.' }); }
+    res.status(401).json({ message: 'Password nabi! Wasigaje inshuro ' + (4 - adminFailed) + ' gusa!' });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/client.html', (req, res) => res.sendFile(path.join(__dirname, 'client.html')));
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
