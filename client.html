@@ -4,6 +4,7 @@
 <div id="loginBox" class="card" style="max-width:500px;margin:20px auto"><h2 data-t="loginTitle">Injira — Client</h2><div class="name-row"><div class="name-field"><label data-t="first">Izina:</label><input id="loginFirst" placeholder="Izina"></div><div class="name-field"><label data-t="last">Amatazirano:</label><input id="loginLast" placeholder="Amatazirano"></div></div><div class="field"><label data-t="phone">Numero ya Telephone:</label><div class="phone-row"><select id="loginCode"></select><input id="loginPhone" placeholder="Numero"></div></div><div class="field"><label data-t="pass">Password (Ibiharuro 4):</label><input id="loginPass" type="password" placeholder="1234" inputmode="numeric" maxlength="4"></div><button class="btn-green" style="width:100%;margin-top:15px;padding:14px" onclick="doLogin()" data-t="loginBtn">Injira →</button><p id="loginMsg" style="text-align:center;margin-top:10px;font-weight:700"></p><p style="text-align:center;margin-top:10px"><a href="#" onclick="showForgot();return false" data-t="forgot">Wibagiye Password?</a> | <a href="/" data-t="register">Iyandikishe</a></p><div id="forgotBox" style="display:none;margin-top:15px;border-top:1px solid #eee;padding-top:15px"><p><b>Wibagiye Password?</b> Uzuza Izina na Numero — Demande ija kuri Admin. Admin azoguhamagara, akubaze Ibibazo 5, aguh e Code.</p><button class="btn-gold" style="width:100%;margin-top:10px" onclick="doForgot()">Saba Guhindura Password</button></div></div>
 <div id="dashBox" style="display:none">
 <div class="stats"><div class="stat"><b id="bal">0 BIF</b><span data-t="balance">Balance Yawe</span></div><div class="stat"><b id="bonus">0 BIF</b><span>Bonus</span></div><div class="stat"><b id="airCount">0/2</b><span>Unites</span></div></div>
+<div class="card" style="background:#fffbe6;border:2px solid #FFD700"><h2>🎁 Tumira Abagenzi — Ronka 200 BIF!</h2><p>Utumiye umugenzi, <b>namaze gukoresha</b> (kurungika canke kugura Unites) → <b>Uronka 200 BIF!</b></p><p style="margin:10px 0">Code yawe:</p><p style="font-size:28px;font-weight:800;color:#0B8A3E;text-align:center;letter-spacing:2px" id="myRefCode">---</p><button class="btn-green" style="width:100%;margin-top:10px" onclick="shareReferral()">📲 Tumira kuri WhatsApp</button><p style="margin-top:10px;font-weight:700">Abantu watumiye:</p><div id="myReferrals">Gutegereza...</div></div>
 <div class="card"><h2 data-t="sendTitle">💸 Rungika Amafaranga</h2><div class="field"><label data-t="step1">1. Numero y'Uwakira:</label><div class="phone-row"><select id="sendCountryCode"></select><input id="sendToPhone" placeholder="79 00 00 00" oninput="checkName()"></div><p id="namePreview" style="margin-top:8px;font-weight:700;min-height:20px;color:#0B8A3E"></p></div><div class="field"><label data-t="step2">2. Amafaranga (BIF):</label><input id="sendAmount" type="number" placeholder="20000" oninput="checkName()"><p id="feePreview" style="font-size:13px;color:#666;margin-top:5px"></p></div><button class="btn-green" style="width:100%;padding:14px;font-size:16px" onclick="showConfirm()" data-t="checkNameBtn">Raba Izina →</button><div id="confirmBox" style="display:none;background:#fffbe6;border:2px solid #FFD700;padding:20px;border-radius:12px;margin-top:15px;text-align:center"><h3 style="color:#0B8A3E">🔍 Emeza ko ari Wewe!</h3><p style="font-size:18px;margin:15px 0" data-t="sendingTo">Urongikiye:</p><p style="font-size:24px;font-weight:800" id="confirmName">---</p><p style="font-size:16px" id="confirmPhone">---</p><p style="font-size:20px;font-weight:700;color:#0B8A3E" id="confirmAmount">---</p><p style="font-size:13px;color:#666" id="confirmFee">---</p><p style="margin-top:10px;color:#f44336;font-weight:700" data-t="warn">⚠️ Reba neza izina! Niwakora ikosa, amafaranga ntayasubira!</p><br><div style="display:flex;gap:10px"><button onclick="doSend()" style="flex:1;padding:14px;background:#0B8A3E;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:18px">✅ EGO - Ni Wewe! Rungika</button><button onclick="cancelSend()" style="flex:1;padding:14px;background:#f44336;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:18px">❌ OYA - Si Wewe!</button></div></div><p id="sendMsg" style="text-align:center;margin-top:12px;font-weight:700"></p></div>
 <div class="card"><h2>📱 Gura Unites</h2><div class="field"><label>Numero:</label><div class="phone-row"><select id="airCode"></select><input id="airPhone" placeholder="Numero"></div></div><div class="field"><label>Amount (BIF):</label><input id="airAmount" type="number" placeholder="5000"></div><div class="field"><label>Operator:</label><select id="airOp"><option>Lumicash</option><option>Ecocash</option><option>Bancobu eNoti</option><option>BCB Mobile</option><option>KCB Mobi</option><option>Airtel Money</option></select></div><button class="btn-green" style="width:100%;margin-top:12px;padding:14px" onclick="buyAirtime()">Gura Unites →</button><p id="airMsg" style="text-align:center;margin-top:10px;font-weight:700"></p></div>
 <div class="card"><h2>🧾 Transactions Zawe</h2><div id="txList">Gutegereza...</div></div>
@@ -27,7 +28,7 @@ async function doLogin(){
   if(!r.ok) return;
   currentCustomer=d.customer; currentCustomerId=d.customer.id; localStorage.setItem('sm_customer_id',String(d.customer.id)); window.currentCustomerId=d.customer.id;
   document.getElementById('loginBox').style.display='none'; document.getElementById('dashBox').style.display='block';
-  loadDashboard(d);
+  loadDashboard(d); loadMyReferral();
 }
 function loadDashboard(d){
   if(!d) return;
@@ -63,16 +64,42 @@ async function doSend(){
   const code=document.getElementById('sendCountryCode').value; const raw=document.getElementById('sendToPhone').value.trim().replace(/[\s\-]/g,''); const phone=code+raw.replace(/^0+/,''); const amt=document.getElementById('sendAmount').value;
   const customerId=localStorage.getItem('sm_customer_id')||window.currentCustomerId;
   if(!customerId) return document.getElementById('sendMsg').textContent='Banza winjire!';
+  const pin = prompt('🔒 EMEZA - Andika PIN yawe (Ibiharuro 4):');
+  if(!pin) return;
+  const v = await fetch('/api/verify-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:customerId, pin:pin})});
+  const vd = await v.json();
+  if(!vd.ok){ alert('❌ PIN nabi!'); return; }
   document.getElementById('sendMsg').textContent='Turiko turungika...';
   const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_customer_id:customerId,to_phone:phone,amount:amt})});
   const d=await r.json(); document.getElementById('sendMsg').textContent=d.message;
-  if(r.ok){ document.getElementById('confirmBox').style.display='none'; document.getElementById('sendToPhone').value=''; document.getElementById('sendAmount').value=''; document.getElementById('namePreview').textContent=''; const txt='🧾 RECEIPT - SendMoney\nCode: '+(d.code||'')+'\nUwakira: '+(lastFoundName||phone)+'\nNumero: '+phone+'\nAmount: '+amt+' BIF\nFee: '+(d.fee||0)+' BIF'; if(confirm('Vyagenze! Wipfuza Kopya Receipt?')){ navigator.clipboard.writeText(txt); alert('Receipt yakopywe!'); } }
+  if(r.ok){
+    document.getElementById('confirmBox').style.display='none'; document.getElementById('sendToPhone').value=''; document.getElementById('sendAmount').value=''; document.getElementById('namePreview').textContent='';
+    const txt='🧾 RECEIPT - SendMoney\nCode: '+(d.code||'')+'\nUwakira: '+(lastFoundName||phone)+'\nNumero: '+phone+'\nAmount: '+amt+' BIF\nFee: '+(d.fee||0)+' BIF';
+    const waLink = 'https://wa.me/'+phone.replace('+','')+'?text='+encodeURIComponent('Murakaza neza! Warungikiwe '+amt+' BIF kuri SendMoney! Code: '+(d.code||'')+' - SendMoney');
+    if(confirm('Vyagenze! Wipfuza Kubwira Uwakira kuri WhatsApp?')){ window.open(waLink,'_blank'); }
+    if(confirm('Wipfuza Kopya Receipt?')){ navigator.clipboard.writeText(txt); alert('Receipt yakopywe!'); }
+  }
 }
 async function buyAirtime(){
   const code=document.getElementById('airCode').value; const raw=document.getElementById('airPhone').value.trim().replace(/[\s\-]/g,''); const phone=code+raw.replace(/^0+/,''); const amount=document.getElementById('airAmount').value; const operator=document.getElementById('airOp').value; const customerId=localStorage.getItem('sm_customer_id')||window.currentCustomerId;
   if(!raw||!amount) return document.getElementById('airMsg').textContent='Uzuza Numero na Amount!';
   const r=await fetch('/api/airtime',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId,phone,amount,operator})});
   const d=await r.json(); document.getElementById('airMsg').textContent=d.message;
+}
+async function loadMyReferral(){
+  const id = localStorage.getItem('sm_customer_id');
+  if(!id) return;
+  const r = await fetch('/api/my-referral/'+id); const d = await r.json();
+  document.getElementById('myRefCode').textContent = d.code || '---';
+  let h = '';
+  (d.referrals||[]).forEach(function(x){ h += '<div class="item"><div><b>'+x.invited_name+'</b> - '+x.invited_phone+'</div><div>'+(x.status==='rewarded' ? '✅ 200 BIF ✔️' : '⏳ Tegereza akoreshe...')+'</div></div>'; });
+  document.getElementById('myReferrals').innerHTML = h || 'Nta muntu uratumira';
+  window._myRefCode = d.code;
+}
+function shareReferral(){
+  const code = window._myRefCode || document.getElementById('myRefCode').textContent;
+  const msg = 'Murakaza neza kuri SendMoney! 💸 Iyandikishe na Code yanje '+code+' uronke Bonus 10,000 BIF! Rungika amafaranga vuba! https://sendmoney-5cub.onrender.com';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 function copyReceiptById(id){ const t=(window._lastTx||[]).find(function(x){return x.id===id}); if(!t) return; const txt='🧾 RECEIPT - SendMoney\nCode: '+(t.code||'')+'\nKuva: '+(t.from_phone||'')+'\nUja: '+(t.to_phone||'')+'\nAmount: '+(t.amount||0)+' BIF\nFee: '+(t.fee||0)+' BIF\nUwakira yaronse: '+(t.net_amount||0)+' BIF\nIgihe: '+new Date(t.created_at).toLocaleString()+'\nSendMoney - https://sendmoney-5cub.onrender.com'; navigator.clipboard.writeText(txt); alert('Receipt yakopywe! Sangiza kuri WhatsApp!'); }
 function logout(){ localStorage.removeItem('sm_customer_id'); window.location.href='/'; }
