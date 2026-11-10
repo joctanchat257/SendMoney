@@ -8,8 +8,9 @@ app.use(express.json());
 app.use(express.static(__dirname));
 const PORT = process.env.PORT || 3000;
 const BONUS_AMOUNT = 10000;
+const REFERRAL_REWARD = 200;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Joc7777777';
-const ADMIN_2FA_CODE = process.env.ADMIN_2FA_CODE || '2580';
+const ADMIN_2FA_CODE = process.env.ADMIN_2FA_CODE || '1357';
 const FEE_RATE = 0.02;
 const AGENT_SHARE = 0.6;
 const SUPER_SHARE = 0.2;
@@ -25,7 +26,7 @@ let adminBlockedUntil = null;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/sendmoney', ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false });
 async function initDB() {
   try {
-    await pool.query(`CREATE TABLE IF NOT EXISTS customers (id SERIAL PRIMARY KEY, full_name TEXT NOT NULL, phone TEXT UNIQUE NOT NULL, country TEXT DEFAULT 'Burundi', channel TEXT DEFAULT 'Lumicash', password TEXT NOT NULL, status TEXT DEFAULT 'pending', balance NUMERIC DEFAULT 0, bonus_amount NUMERIC DEFAULT 0, bonus_locked BOOLEAN DEFAULT true, airtime_count INTEGER DEFAULT 0, blocked BOOLEAN DEFAULT false, failed_attempts INTEGER DEFAULT 0, blocked_until TIMESTAMP, created_at TIMESTAMP DEFAULT NOW())`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS customers (id SERIAL PRIMARY KEY, full_name TEXT NOT NULL, phone TEXT UNIQUE NOT NULL, country TEXT DEFAULT 'Burundi', channel TEXT DEFAULT 'Lumicash', password TEXT NOT NULL, status TEXT DEFAULT 'pending', balance NUMERIC DEFAULT 0, bonus_amount NUMERIC DEFAULT 0, bonus_locked BOOLEAN DEFAULT true, airtime_count INTEGER DEFAULT 0, blocked BOOLEAN DEFAULT false, failed_attempts INTEGER DEFAULT 0, blocked_until TIMESTAMP, referral_code TEXT, referred_by TEXT, referral_rewarded BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS wallets (id SERIAL PRIMARY KEY, customer_id INTEGER UNIQUE REFERENCES customers(id) ON DELETE CASCADE, balance NUMERIC DEFAULT 0, bonus_amount NUMERIC DEFAULT 0, bonus_locked BOOLEAN DEFAULT true, airtime_count INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS transactions (id SERIAL PRIMARY KEY, code TEXT, from_customer_id INTEGER, to_customer_id INTEGER, from_phone TEXT, to_phone TEXT, amount NUMERIC, fee NUMERIC, net_amount NUMERIC, type TEXT, method TEXT, channel TEXT DEFAULT 'Lumicash', status TEXT DEFAULT 'completed', agent_share NUMERIC DEFAULT 0, super_share NUMERIC DEFAULT 0, platform_share NUMERIC DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS airtime_purchases (id SERIAL PRIMARY KEY, customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE, phone TEXT, amount NUMERIC, operator TEXT DEFAULT 'Lumicash', created_at TIMESTAMP DEFAULT NOW())`);
@@ -33,6 +34,7 @@ async function initDB() {
     await pool.query(`CREATE TABLE IF NOT EXISTS super_agents (id SERIAL PRIMARY KEY, full_name TEXT, phone TEXT UNIQUE, province TEXT DEFAULT 'Burundi', password TEXT, status TEXT DEFAULT 'approved', balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, failed_attempts INTEGER DEFAULT 0, blocked_until TIMESTAMP, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS withdrawals (id SERIAL PRIMARY KEY, user_type TEXT, user_id INTEGER, user_name TEXT, amount NUMERIC, method TEXT DEFAULT 'Lumicash', status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS reset_requests (id SERIAL PRIMARY KEY, customer_id INTEGER, full_name TEXT, phone TEXT, code TEXT, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW(), verified_call BOOLEAN DEFAULT false, verified_question BOOLEAN DEFAULT false)`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS referrals (id SERIAL PRIMARY KEY, inviter_phone TEXT, invited_phone TEXT, invited_name TEXT, status TEXT DEFAULT 'pending', reward NUMERIC DEFAULT 200, created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS platform_wallet (id SERIAL PRIMARY KEY, balance NUMERIC DEFAULT 0, total_earned NUMERIC DEFAULT 0, total_withdrawn NUMERIC DEFAULT 0, updated_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`INSERT INTO platform_wallet (balance) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM platform_wallet)`);
     await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS bonus_amount NUMERIC DEFAULT 0`);
@@ -42,6 +44,9 @@ async function initDB() {
     await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS failed_attempts INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS blocked_until TIMESTAMP`);
     await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS balance NUMERIC DEFAULT 0`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_code TEXT`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS referred_by TEXT`);
+    await pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_rewarded BOOLEAN DEFAULT false`);
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS agent_share NUMERIC DEFAULT 0`);
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS super_share NUMERIC DEFAULT 0`);
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS platform_share NUMERIC DEFAULT 0`);
@@ -62,18 +67,38 @@ initDB();
 function normPhone(p) { if (!p) return ''; let s = String(p).replace(/[\s\-]/g, ''); if (s.startsWith('0')) s = '+257' + s.slice(1); if (!s.startsWith('+')) s = '+' + s; return s; }
 function genCode() { return 'SM' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100); }
 function genResetCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
+async function giveReferralReward(invitedPhone) {
+  try {
+    const ref = await pool.query("SELECT * FROM referrals WHERE invited_phone=$1 AND status='pending' LIMIT 1", [invitedPhone]);
+    if (!ref.rows.length) return;
+    const inviter = await pool.query('SELECT id FROM customers WHERE phone=$1', [ref.rows[0].inviter_phone]);
+    if (!inviter.rows.length) return;
+    await pool.query('UPDATE wallets SET balance = balance + $1 WHERE customer_id=$2', [REFERRAL_REWARD, inviter.rows[0].id]);
+    await pool.query('UPDATE customers SET balance = balance + $1 WHERE id=$2', [REFERRAL_REWARD, inviter.rows[0].id]);
+    await pool.query("UPDATE referrals SET status='rewarded' WHERE id=$1", [ref.rows[0].id]);
+    console.log('Referral 200 BIF -> ' + ref.rows[0].inviter_phone);
+  } catch (e) { console.log('Referral error:', e.message); }
+}
 app.get('/api/health', async (req, res) => { try { await pool.query('SELECT 1'); res.json({ ok: true, db: 'connected' }); } catch (e) { res.json({ ok: true, db: 'disconnected', error: e.message }); } });
 app.post('/api/customers', async (req, res) => {
   try {
-    const { full_name, phone, country, channel, password } = req.body;
+    const { full_name, phone, country, channel, password, referral_code, invite_code } = req.body;
     if (!full_name || !phone) return res.status(400).json({ message: 'Uzuza Izina, Amatazirano na telefone!' });
     if (!/^[0-9]{4}$/.test(password || '')) return res.status(400).json({ message: 'Password igomba kuba IBHARURO 4 GUSA!' });
     const p = normPhone(phone);
     const exist = await pool.query('SELECT id FROM customers WHERE phone=$1', [p]);
     if (exist.rows.length) return res.status(400).json({ message: 'Iyi numero yamaze kwiyandikisha!' });
-    const r = await pool.query("INSERT INTO customers (full_name, phone, country, channel, password, status, balance, bonus_amount, bonus_locked, airtime_count) VALUES ($1,$2,$3,$4,$5,'pending',0,$6,true,0) RETURNING *", [full_name.trim(), p, country || 'Burundi', channel || 'Lumicash', password, BONUS_AMOUNT]);
+    const myReferralCode = 'SM' + String(p).slice(-4) + Math.floor(Math.random()*90+10);
+    let referredBy = referral_code || invite_code || null;
+    if (referredBy) {
+      const inv = await pool.query('SELECT phone FROM customers WHERE referral_code=$1', [String(referredBy).trim()]);
+      if (!inv.rows.length) referredBy = null;
+      else if (inv.rows[0].phone === p) referredBy = null;
+    }
+    const r = await pool.query("INSERT INTO customers (full_name, phone, country, channel, password, status, balance, bonus_amount, bonus_locked, airtime_count, referral_code, referred_by) VALUES ($1,$2,$3,$4,$5,'pending',0,$6,true,0,$7,$8) RETURNING *", [full_name.trim(), p, country || 'Burundi', channel || 'Lumicash', password, BONUS_AMOUNT, myReferralCode, referredBy]);
     await pool.query('INSERT INTO wallets (customer_id, balance, bonus_amount, bonus_locked, airtime_count) VALUES ($1,0,$2,true,0)', [r.rows[0].id, BONUS_AMOUNT]);
-    res.json({ message: 'Wiyandikishije neza! Tegereza Admin yemeze. Bonus ' + BONUS_AMOUNT + ' BIF izoherwa! Password = ' + password, customer: r.rows[0] });
+    if (referredBy) { await pool.query("INSERT INTO referrals (inviter_phone, invited_phone, invited_name, status) VALUES ($1,$2,$3,'pending')", [referredBy, p, full_name.trim()]); }
+    res.json({ message: 'Wiyandikishije neza! Tegereza Admin yemeze. Bonus ' + BONUS_AMOUNT + ' BIF izoherwa! Code yawe yo gutumira: ' + myReferralCode, customer: r.rows[0], referral_code: myReferralCode });
   } catch (e) { res.status(500).json({ message: 'Habaye ikibazo: ' + e.message }); }
 });
 app.get('/api/customers', async (req, res) => {
@@ -88,6 +113,23 @@ app.get('/api/customer-by-phone/:phone', async (req, res) => {
     const r = await pool.query('SELECT full_name, phone, status FROM customers WHERE phone=$1', [p]);
     if (!r.rows.length) return res.json({ found: false, message: 'Iyi numero ntiyanditswe!' });
     res.json({ found: true, full_name: r.rows[0].full_name, phone: r.rows[0].phone, status: r.rows[0].status });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+app.post('/api/verify-pin', async (req, res) => {
+  try {
+    const { customer_id, pin } = req.body;
+    const r = await pool.query('SELECT password FROM customers WHERE id=$1', [customer_id]);
+    if (!r.rows.length) return res.status(400).json({ ok: false, message: 'Client ntabaho' });
+    if (r.rows[0].password !== String(pin)) return res.status(400).json({ ok: false, message: 'PIN nabi!' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, message: e.message }); }
+});
+app.get('/api/my-referral/:id', async (req, res) => {
+  try {
+    const c = await pool.query('SELECT referral_code, phone FROM customers WHERE id=$1', [req.params.id]);
+    if (!c.rows.length) return res.json({ code: '', referrals: [] });
+    const refs = await pool.query('SELECT * FROM referrals WHERE inviter_phone=$1 ORDER BY created_at DESC', [c.rows[0].phone]);
+    res.json({ code: c.rows[0].referral_code, referrals: refs.rows });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 app.patch('/api/customers/:id/status', async (req, res) => {
@@ -208,7 +250,7 @@ app.post('/api/send', async (req, res) => {
     let receiver = await pool.query('SELECT * FROM customers WHERE phone=$1', [p]);
     let receiverId = null;
     if (!receiver.rows.length) {
-      const nr = await pool.query("INSERT INTO customers (full_name, phone, country, channel, password, status, balance, bonus_amount, bonus_locked, airtime_count) VALUES ($1,$2,'Burundi','Lumicash','0000','pending',0,$3,true,0) RETURNING *", ['Client ' + p, p, BONUS_AMOUNT]);
+      const nr = await pool.query("INSERT INTO customers (full_name, phone, country, channel, password, status, balance, bonus_amount, bonus_locked, airtime_count, referral_code) VALUES ($1,$2,'Burundi','Lumicash','0000','pending',0,$3,true,0,$4) RETURNING *", ['Client ' + p, p, BONUS_AMOUNT, 'SM' + String(p).slice(-4) + Math.floor(Math.random()*90+10)]);
       receiverId = nr.rows[0].id;
       await pool.query('INSERT INTO wallets (customer_id, balance, bonus_amount, bonus_locked, airtime_count) VALUES ($1,0,$2,true,0)', [receiverId, BONUS_AMOUNT]);
     } else receiverId = receiver.rows[0].id;
@@ -242,6 +284,7 @@ app.post('/api/send', async (req, res) => {
       agentShare = 0; superShare = 0; platShare = fee;
     }
     await pool.query("INSERT INTO transactions (code, from_customer_id, to_customer_id, from_phone, to_phone, amount, fee, net_amount, type, method, channel, status, agent_share, super_share, platform_share) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'transfer','Lumicash','Lumicash','completed',$9,$10,$11)", [code, from_customer_id, receiverId, s.phone, p, amt, fee, net, agentShare, superShare, platShare]);
+    await giveReferralReward(s.phone);
     res.json({ message: 'Vyagenze! ' + amt + ' BIF yoherejwe. Fee: ' + fee + ' BIF. Uwakira yaronse ' + net + ' BIF. Code: ' + code, code, fee, net });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
@@ -268,6 +311,7 @@ app.post('/api/airtime', async (req, res) => {
       await pool.query('UPDATE customers SET bonus_locked=false WHERE id=$1', [customerId]);
       msg += ' BONUS YAWE IRAFUNGUTSE!';
     } else if (cnt < 2) { msg += ' Usigaje inshuro ' + (2 - cnt) + ' kugira Bonus ifunguke.'; }
+    await giveReferralReward(c.phone);
     res.json({ message: msg });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
