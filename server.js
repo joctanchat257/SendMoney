@@ -8,7 +8,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 const PORT = process.env.PORT || 3000;
 const BONUS_AMOUNT = 10000;
-const ADMIN_PASSWORD = "Joctan7777777";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Joc7777777";
 const FEE_RATE = 0.02;
 const AGENT_SHARE = 0.6;
 const SUPER_SHARE = 0.2;
