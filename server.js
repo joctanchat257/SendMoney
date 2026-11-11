@@ -50,6 +50,33 @@ app.get('/api/admin/agents', async (req,res)=>{ const r=await pool.query('SELECT
 app.get('/api/admin/super-agents', async (req,res)=>{ const r=await pool.query('SELECT * FROM super_agents ORDER BY created_at DESC'); res.json(r.rows); });
 app.get('/api/admin/transactions', async (req,res)=>{ const r=await pool.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 200'); res.json(r.rows); });
 app.get('/api/admin/withdrawals', async (req,res)=>{ const r=await pool.query('SELECT * FROM withdrawals ORDER BY created_at DESC LIMIT 200'); res.json(r.rows); });
+// NOUVEAU - Commission ya Admin
+app.get('/api/admin/commission', async (req,res)=>{
+  const tx = await pool.query("SELECT COALESCE(SUM(fee),0) as total_fee, COALESCE(SUM(amount),0) as total_sent, COUNT(*) as total_count FROM transactions WHERE type='send'");
+  const wdAdmin = await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE role='admin' AND status='approved'");
+  const wdAgent = await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE role='agent' AND status='approved'");
+  const wdSuper = await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE role='super_agent' AND status='approved'");
+  const wdClient = await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE role='client' AND status='approved'");
+  const ag = await pool.query("SELECT COALESCE(SUM(commission),0) as t FROM agents");
+  const sp = await pool.query("SELECT COALESCE(SUM(commission),0) as t FROM super_agents");
+  const totalFee = Number(tx.rows[0].total_fee||0);
+  const adminTotal = Math.round(totalFee * 0.2);
+  const adminPaid = Number(wdAdmin.rows[0].t||0);
+  res.json({
+    total_fee: totalFee,
+    total_sent: Number(tx.rows[0].total_sent||0),
+    total_count: Number(tx.rows[0].total_count||0),
+    admin_total: adminTotal,
+    admin_paid: adminPaid,
+    admin_rest: adminTotal - adminPaid,
+    agent_total: Number(ag.rows[0].t||0),
+    super_total: Number(sp.rows[0].t||0),
+    wd_admin: adminPaid,
+    wd_agent: Number(wdAgent.rows[0].t||0),
+    wd_super: Number(wdSuper.rows[0].t||0),
+    wd_client: Number(wdClient.rows[0].t||0)
+  });
+});
 app.post('/api/admin/customers/:id/:action', async (req,res)=>{ const {id,action}=req.params; if(action==='approve') await pool.query("UPDATE customers SET status='approved' WHERE id=$1",[id]); if(action==='block') await pool.query("UPDATE customers SET status='blocked' WHERE id=$1",[id]); if(action==='unblock') await pool.query("UPDATE customers SET status='approved' WHERE id=$1",[id]); if(action==='delete') await pool.query('DELETE FROM customers WHERE id=$1',[id]); res.json({message:'Vyagenze!'}); });
 app.post('/api/admin/agents/:id/:action', async (req,res)=>{ const {id,action}=req.params; if(action==='approve') await pool.query("UPDATE agents SET status='approved' WHERE id=$1",[id]); if(action==='block') await pool.query("UPDATE agents SET status='blocked' WHERE id=$1",[id]); if(action==='unblock') await pool.query("UPDATE agents SET status='approved' WHERE id=$1",[id]); res.json({message:'Vyagenze!'}); });
 app.post('/api/admin/super-agents/:id/:action', async (req,res)=>{ const {id,action}=req.params; if(action==='approve') await pool.query("UPDATE super_agents SET status='approved' WHERE id=$1",[id]); if(action==='block') await pool.query("UPDATE super_agents SET status='blocked' WHERE id=$1",[id]); if(action==='unblock') await pool.query("UPDATE super_agents SET status='approved' WHERE id=$1",[id]); if(action==='delete') await pool.query('DELETE FROM super_agents WHERE id=$1',[id]); res.json({message:'Vyagenze!'}); });
