@@ -15,7 +15,6 @@ function checkBlock(phone){ const f=loginFails[phone]; if(f && f.blockedUntil &&
 function recordFail(phone,isAdmin){ if(!loginFails[phone]) loginFails[phone]={count:0,blockedUntil:0}; loginFails[phone].count++; if(loginFails[phone].count>=4){ loginFails[phone].blockedUntil=Date.now()+(isAdmin?30*60*1000:24*60*60*1000); loginFails[phone].count=0; return true; } return false; }
 function clearFail(phone){ delete loginFails[phone]; }
 
-// --- LOG OPERATIONS ---
 async function logOp(actor_phone, actor_name, actor_role, action, details, amount){
   try{ await pool.query('INSERT INTO operations_log(actor_phone, actor_name, actor_role, action, details, amount) VALUES($1,$2,$3,$4,$5,$6)',[actor_phone||'', actor_name||'', actor_role||'', action||'', details||'', Number(amount||0)]); }catch(e){}
 }
@@ -57,17 +56,23 @@ app.post('/api/reset-request', async (req,res)=>{ const {phone,q1,q2,q3,q4,q5}=r
 
 // --- ADMIN: OPERATIONS + LIVE + COMMISSION ---
 app.get('/api/admin/operations', async (req,res)=>{
-  const r = await pool.query('SELECT * FROM operations_log ORDER BY created_at DESC LIMIT 200');
-  res.json(r.rows);
+  try{
+    await pool.query(`CREATE TABLE IF NOT EXISTS operations_log(id SERIAL PRIMARY KEY, actor_phone TEXT, actor_name TEXT, actor_role TEXT, action TEXT, details TEXT, amount NUMERIC DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
+    const r = await pool.query('SELECT * FROM operations_log ORDER BY created_at DESC LIMIT 200');
+    res.json(r.rows);
+  }catch(e){ res.json([]); }
 });
 app.get('/api/admin/live', async (req,res)=>{
-  const last5 = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at > NOW() - INTERVAL '5 minutes'");
-  const last60 = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at > NOW() - INTERVAL '1 hour'");
-  const today = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at::date = CURRENT_DATE");
-  const todaySend = await pool.query("SELECT COALESCE(SUM(amount),0) as t, COALESCE(SUM(fee),0) as f, COUNT(*) as c FROM transactions WHERE created_at::date = CURRENT_DATE AND type='send'");
-  const recent = await pool.query('SELECT * FROM operations_log ORDER BY created_at DESC LIMIT 10');
-  const counts = await pool.query("SELECT (SELECT COUNT(*) FROM customers) as clients, (SELECT COUNT(*) FROM agents) as agents, (SELECT COUNT(*) FROM super_agents) as supers, (SELECT COUNT(*) FROM customers WHERE status='pending') as pending_clients");
-  res.json({ last5: last5.rows[0], last60: last60.rows[0], today: today.rows[0], todaySend: todaySend.rows[0], recent: recent.rows, counts: counts.rows[0] });
+  try{
+    await pool.query(`CREATE TABLE IF NOT EXISTS operations_log(id SERIAL PRIMARY KEY, actor_phone TEXT, actor_name TEXT, actor_role TEXT, action TEXT, details TEXT, amount NUMERIC DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
+    const last5 = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at > NOW() - INTERVAL '5 minutes'");
+    const last60 = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at > NOW() - INTERVAL '1 hour'");
+    const today = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at::date = CURRENT_DATE");
+    const todaySend = await pool.query("SELECT COALESCE(SUM(amount),0) as t, COALESCE(SUM(fee),0) as f, COUNT(*) as c FROM transactions WHERE created_at::date = CURRENT_DATE AND type='send'");
+    const recent = await pool.query('SELECT * FROM operations_log ORDER BY created_at DESC LIMIT 10');
+    const counts = await pool.query("SELECT (SELECT COUNT(*) FROM customers) as clients, (SELECT COUNT(*) FROM agents) as agents, (SELECT COUNT(*) FROM super_agents) as supers, (SELECT COUNT(*) FROM customers WHERE status='pending') as pending_clients");
+    res.json({ last5: last5.rows[0], last60: last60.rows[0], today: today.rows[0], todaySend: todaySend.rows[0], recent: recent.rows, counts: counts.rows[0] });
+  }catch(e){ console.log('LIVE ERROR', e.message); res.status(500).json({message:'Live error: '+e.message}); }
 });
 app.get('/api/admin/reset-requests', async (req,res)=>{ const r=await pool.query("SELECT * FROM reset_requests WHERE status='pending' ORDER BY created_at DESC"); res.json(r.rows); });
 app.post('/api/admin/reset-password', async (req,res)=>{ const {phone,new_password}=req.body; let done=false; for(const t of ['customers','agents','super_agents']){ const r=await pool.query(`UPDATE ${t} SET password=$1 WHERE phone=$2 RETURNING *`,[new_password,phone]); if(r.rows.length) done=true; } if(!done) return res.status(404).json({message:'Numero ntabaho!'}); await pool.query("UPDATE reset_requests SET status='approved' WHERE phone=$1",[phone]); clearFail(phone); await logOp('ADMIN','Admin - SendMoney','admin','RESET PASSWORD','Admin yahinduriye password '+phone,0); res.json({message:'Password yahindutse! Block yarakuwe!'}); });
