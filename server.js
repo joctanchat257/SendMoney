@@ -8,7 +8,7 @@ app.use(express.static(__dirname));
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SHIRA_PASSWORD_YAWE';
-const ADMIN_2FA = process.env.ADMIN_2FA || 'SHIRA_CODE_YAWE';
+const ADMIN_2FA = process.env.ADMIN_2FA || process.env.ADMIN_2FA_CODE || 'SHIRA_CODE_YAWE';
 
 let loginFails = {};
 function checkBlock(phone){ const f=loginFails[phone]; if(f && f.blockedUntil && Date.now()<f.blockedUntil){ return 'Wahagaritswe! Tegereza iminota '+Math.ceil((f.blockedUntil-Date.now())/60000); } return null; }
