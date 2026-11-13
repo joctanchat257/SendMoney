@@ -36,7 +36,7 @@ async function logOp(actor_phone, actor_name, actor_role, action, details, amoun
 async function sendNotification(toPhone, message){ await logOp(toPhone, '', 'system', 'NOTIFICATION', message, 0); console.log('NOTIFY to '+toPhone+': '+message); return true; }
 async function notifyAdmin(message){ await logOp(ADMIN_PHONE, 'Admin - SendMoney', 'admin', 'NOTIFICATION ADMIN', message, 0); console.log('ADMIN NOTIFY: '+message); await sendNotification(ADMIN_PHONE, 'SendMoney ADMIN: '+message); return true; }
 async function initDB(){
-  if(!process.env.DATABASE_URL){ console.log('⚠️ DATABASE_URL ntibonetse'); return; }
+  if(!process.env.DATABASE_URL){ console.log('DATABASE_URL ntibonetse'); return; }
   try{
     await pool.query(`CREATE TABLE IF NOT EXISTS customers(id SERIAL PRIMARY KEY, full_name TEXT, izina TEXT, amatazirano TEXT, phone TEXT UNIQUE, password TEXT, country TEXT, language TEXT, channel TEXT, balance NUMERIC DEFAULT 0, bonus NUMERIC DEFAULT 0, bonus_locked BOOLEAN DEFAULT true, airtime_count INT DEFAULT 0, referral_code TEXT, invited_by TEXT, referral_paid BOOLEAN DEFAULT false, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE TABLE IF NOT EXISTS agents(id SERIAL PRIMARY KEY, full_name TEXT, izina TEXT, amatazirano TEXT, phone TEXT UNIQUE, password TEXT, province TEXT, commission NUMERIC DEFAULT 0, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
@@ -62,7 +62,7 @@ app.post('/api/withdraw', async (req,res)=>{
     const rle=role||'client'; const amt = Number(amount); const dest = (destination_phone || withdraw_to || '').trim();
     if(!amt || amt < 5000) return res.status(400).json({message:'Min 5,000 BIF!', success:false});
     if(amt > 100000) return res.status(400).json({message:'Max 100,000 ku musi!', success:false});
-    if(!channel) return res.status(400).json({message:'Hitamo umuhora: Lumicash / Ecocash / MTN / 【entity-Airtel¦canonical_name=Airtel】', success:false});
+    if(!channel) return res.status(400).json({message:'Hitamo umuhora: Lumicash / Ecocash / MTN / Airtel', success:false});
     if(!dest || dest.length < 8) return res.status(400).json({message:'Andika numero ushaka kurotirirako!', success:false});
     if(rle==='admin'){
       const tx = await pool.query("SELECT COALESCE(SUM(fee),0) as total_fee FROM transactions WHERE type='send'");
