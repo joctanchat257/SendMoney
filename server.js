@@ -1,10 +1,10 @@
-const 【entity-express¦canonical_name=express】 = require('ex'+'press');
+const fw = require('ex'+'press');
 const cors = require('cors');
 const { Pool } = require('pg');
-const app = 【entity-express¦canonical_name=express】();
+const app = fw();
 app.use(cors());
-app.use(【entity-express¦canonical_name=express】.json());
-app.use(【entity-express¦canonical_name=express】.static(__dirname));
+app.use(express.json());
+app.use(express.static(__dirname));
 process.on('uncaughtException', e => console.log('UNCAUGHT:', e.message));
 process.on('unhandledRejection', e => console.log('REJECTION:', e.message));
 const pool = new Pool({ connectionString: process.env.DATABASE_URL || '', ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 5000 });
@@ -60,7 +60,7 @@ app.post('/api/withdraw', async (req,res)=>{
     const rle=role||'client'; const amt = Number(amount); const dest = (destination_phone || withdraw_to || '').trim();
     if(!amt || amt < 5000) return res.status(400).json({message:'Min 5,000 BIF!', success:false});
     if(amt > 100000) return res.status(400).json({message:'Max 100,000 ku musi!', success:false});
-    if(!channel) return res.status(400).json({message:'Hitamo umuhora: Lumicash / Ecocash / MTN / 【entity-Airtel¦canonical_name=Airtel】', success:false});
+    if(!channel) return res.status(400).json({message:'Hitamo umuhora: Lumicash / Ecocash / MTN / Airtel', success:false});
     if(!dest || dest.length < 8) return res.status(400).json({message:'Andika numero ushaka kurotirirako!', success:false});
     if(rle==='admin'){
       const tx = await pool.query("SELECT COALESCE(SUM(fee),0) as total_fee FROM transactions WHERE type='send'");
