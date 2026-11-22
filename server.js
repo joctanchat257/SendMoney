@@ -1,111 +1,213 @@
-const fw = require('ex'+'press');
+const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
-const app = fw();
+const bodyParser = require('body-parser');
+const path = require('path');
+const app = express();
 app.use(cors());
-app.use(fw.json());
-app.use(fw.static(__dirname));
-process.on('uncaughtException', e => console.log('UNCAUGHT:', e.message));
-process.on('unhandledRejection', e => console.log('REJECTION:', e.message));
-const pool = new Pool({ connectionString: process.env.DATABASE_URL || '', ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 5000 });
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SHIRA_PASSWORD_YAWE';
-const ADMIN_2FA = process.env.ADMIN_2FA || process.env.ADMIN_2FA_CODE || 'SHIRA_CODE_YAWE';
-const ADMIN_PHONE = '+25767899429';
-app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
-let loginFails = {};
-function checkBlock(phone){ const f=loginFails[phone]; if(f && f.blockedUntil && Date.now()<f.blockedUntil){ return 'Wahagaritswe! Tegereza iminota '+Math.ceil((f.blockedUntil-Date.now())/60000); } return null; }
-function recordFail(phone,isAdmin){ if(!loginFails[phone]) loginFails[phone]={count:0,blockedUntil:0}; loginFails[phone].count++; if(loginFails[phone].count>=4){ loginFails[phone].blockedUntil=Date.now()+(isAdmin?30*60*1000:24*60*60*1000); loginFails[phone].count=0; return true; } return false; }
-function clearFail(phone){ delete loginFails[phone]; }
-async function logOp(actor_phone, actor_name, actor_role, action, details, amount){
-  try{
-    let name = actor_name || '';
-    if(!name && actor_phone && actor_phone !== 'ADMIN'){
-      try{
-        for(const tbl of ['customers','agents','super_agents']){
-          const u = await pool.query(`SELECT full_name FROM ${tbl} WHERE phone=$1 LIMIT 1`,[actor_phone]);
-          if(u.rows.length && u.rows[0].full_name){ name = u.rows[0].full_name; break; }
-        }
-      }catch(e){}
-    }
-    if(!name && actor_phone === 'ADMIN') name = 'Admin - SendMoney';
-    await pool.query('INSERT INTO operations_log(actor_phone, actor_name, actor_role, action, details, amount) VALUES($1,$2,$3,$4,$5,$6)',[actor_phone||'', name, actor_role||'', action||'', details||'', Number(amount||0)]);
-  }catch(e){ console.log('logOp fail:', e.message); }
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname)));
+
+function safeNum(v){ const n = Number(v||0); return isNaN(n)?0:n; }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function genCode(){ return 'SM' + Math.floor(100000 + Math.random()*900000); }
+
+let clients = [];
+let agents = [];
+let superAgents = [];
+let transactions = [];
+let withdrawals = [];
+let failedLogins = {};
+
+let adminUser = {
+  phone: '+25767899429',
+  password: '7777',
+  full_name: 'Admin',
+  commission: 0,
+  role: 'admin',
+  status: 'approved'
+};
+
+function findByPhone(phone){
+  if(phone===adminUser.phone) return adminUser;
+  return clients.find(x=>x.phone===phone) || agents.find(x=>x.phone===phone) || superAgents.find(x=>x.phone===phone);
 }
-async function sendNotification(toPhone, message){ await logOp(toPhone, '', 'system', 'NOTIFICATION', message, 0); console.log('NOTIFY to '+toPhone+': '+message); return true; }
-async function notifyAdmin(message){ await logOp(ADMIN_PHONE, 'Admin - SendMoney', 'admin', 'NOTIFICATION ADMIN', message, 0); console.log('ADMIN NOTIFY: '+message); await sendNotification(ADMIN_PHONE, 'SendMoney ADMIN: '+message); return true; }
-async function initDB(){
-  if(!process.env.DATABASE_URL){ console.log('DATABASE_URL ntibonetse'); return; }
-  try{
-    await pool.query(`CREATE TABLE IF NOT EXISTS customers(id SERIAL PRIMARY KEY, full_name TEXT, izina TEXT, amatazirano TEXT, phone TEXT UNIQUE, password TEXT, country TEXT, language TEXT, channel TEXT, balance NUMERIC DEFAULT 0, bonus NUMERIC DEFAULT 0, bonus_locked BOOLEAN DEFAULT true, airtime_count INT DEFAULT 0, referral_code TEXT, invited_by TEXT, referral_paid BOOLEAN DEFAULT false, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS agents(id SERIAL PRIMARY KEY, full_name TEXT, izina TEXT, amatazirano TEXT, phone TEXT UNIQUE, password TEXT, province TEXT, commission NUMERIC DEFAULT 0, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS super_agents(id SERIAL PRIMARY KEY, full_name TEXT, izina TEXT, amatazirano TEXT, phone TEXT UNIQUE, password TEXT, commission NUMERIC DEFAULT 0, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS transactions(id SERIAL PRIMARY KEY, code TEXT, sender_phone TEXT, receiver_phone TEXT, amount NUMERIC, fee NUMERIC, type TEXT DEFAULT 'send', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS withdrawals(id SERIAL PRIMARY KEY, phone TEXT, amount NUMERIC, channel TEXT, role TEXT DEFAULT 'client', full_name TEXT DEFAULT '', destination_phone TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS reset_requests(id SERIAL PRIMARY KEY, phone TEXT, q1 TEXT, q2 TEXT, q3 TEXT, q4 TEXT, q5 TEXT, status TEXT DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS operations_log(id SERIAL PRIMARY KEY, actor_phone TEXT, actor_name TEXT, actor_role TEXT, action TEXT, details TEXT, amount NUMERIC DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query(`ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS destination_phone TEXT DEFAULT ''`);
-    console.log('DB ready');
-  }catch(e){ console.log('DB init fail:', e.message); }
+function getTodayWithdrawTotal(phone){
+  return withdrawals.filter(w=>w.phone===phone && w.date===todayStr() && w.status!=='rejected').reduce((s,w)=>s+safeNum(w.amount),0);
 }
-app.post('/api/admin/login', async (req,res)=>{ const blk=checkBlock('ADMIN'); if(blk) return res.status(400).json({message:blk, success:false}); const {password,code}=req.body; if(password!==ADMIN_PASSWORD||code!==ADMIN_2FA){ const b=recordFail('ADMIN',true); if(b) return res.status(400).json({message:'Wagerageje 4! Wahagaritswe iminota 30!', success:false}); return res.status(400).json({message:'Password canke Code si yo! Bisigaye: '+(4-(loginFails['ADMIN']?.count||0)), success:false}); } clearFail('ADMIN'); await logOp('ADMIN','Admin - SendMoney','admin','LOGIN ADMIN','Admin yinjiye',0); res.json({message:'Urakaza neza Admin!', success:true}); });
-app.post('/api/login', async (req,res)=>{ const {phone,password,role}=req.body; const blk=checkBlock(phone); if(blk) return res.status(400).json({message:blk, success:false}); let table='customers'; if(role==='agent') table='agents'; if(role==='super_agent') table='super_agents'; try{ const r=await pool.query(`SELECT * FROM ${table} WHERE phone=$1`,[phone]); if(!r.rows.length){ recordFail(phone,false); return res.status(400).json({message:'Ntabaho!', success:false}); } if(r.rows[0].password!==password){ const b=recordFail(phone,false); if(b) return res.status(400).json({message:'Wagerageje 4! Wahagaritswe amasaha 24!', success:false}); return res.status(400).json({message:'Password si yo! Bisigaye: '+(4-(loginFails[phone]?.count||0)), success:false}); } if(r.rows[0].status==='blocked') return res.status(400).json({message:'Wahagaritswe! Vugana na Admin.', success:false}); if(r.rows[0].status==='pending') return res.status(400).json({message:'Tegereza Admin akweemeze!', success:false}); clearFail(phone); await logOp(phone, r.rows[0].full_name, role, 'LOGIN', 'Yinjiye muri '+role, 0); res.json({message:'Urakaza neza!', success:true, user:r.rows[0]}); }catch(e){ res.status(500).json({message:'DB ntikora: '+e.message, success:false}); } });
-app.post('/api/register', async (req,res)=>{ const {izina,amatazirano,full_name,phone,password,country,channel,referral_code}=req.body; const finalName=(izina&&amatazirano)?(izina.trim()+' '+amatazirano.trim()):(full_name||''); if(!izina||!amatazirano) return res.status(400).json({message:'Andika Izina NA Amatazirano!', success:false}); if(!/^[0-9]{4}$/.test(password||'')) return res.status(400).json({message:'Password = 4 chiffres GUSA!', success:false}); try{ const code='SM'+Math.floor(1000+Math.random()*9000); const r=await pool.query('INSERT INTO customers(full_name,izina,amatazirano,phone,password,country,channel,referral_code,invited_by,bonus,bonus_locked) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,10000,true) RETURNING *',[finalName,izina,amatazirano,phone,password,country,channel,code,referral_code||null]); await logOp(phone, finalName, 'client', 'REGISTER', 'Yiyandikishije - '+country+' - '+channel, 0); await sendNotification(phone, 'SendMoney: Murakaza neza '+finalName+'! Bonus 10,000 IFUNGUWE. Tegereza Admin akweemeze.'); await notifyAdmin('Client nshasha: '+finalName+' - '+phone+' - '+country+' - '+channel); res.json({message:'Murakaza neza '+finalName+'! Bonus 10,000 IFUNGUWE. Tegereza Admin.', success:true, user:r.rows[0]});}catch(e){ res.status(400).json({message:'Iyi numero yamaze kwiyandikisha!', success:false}); } });
-app.post('/api/agents', async (req,res)=>{ const {izina,amatazirano,full_name,phone,password,province}=req.body; const finalName=(izina&&amatazirano)?(izina.trim()+' '+amatazirano.trim()):(full_name||''); if(!izina||!amatazirano) return res.status(400).json({message:'Andika Izina NA Amatazirano!', success:false}); if(!/^[0-9]{4}$/.test(password||'')) return res.status(400).json({message:'Password = 4 GUSA!', success:false}); try{ const r=await pool.query('INSERT INTO agents(full_name,izina,amatazirano,phone,password,province) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',[finalName,izina,amatazirano,phone,password,province]); await logOp(phone, finalName, 'agent', 'REGISTER AGENT', 'Yiyandikishije Agent - '+province, 0); await notifyAdmin('Agent nshasha: '+finalName+' - '+phone+' - '+province); res.json({message:'Murakaza neza Agent '+finalName+'!', success:true, user:r.rows[0]});}catch(e){ res.status(400).json({message:'Iyi numero yamaze kwiyandikisha!', success:false}); } });
-app.post('/api/super-agents', async (req,res)=>{ const {izina,amatazirano,full_name,phone,password}=req.body; const finalName=(izina&&amatazirano)?(izina.trim()+' '+amatazirano.trim()):(full_name||''); if(!izina||!amatazirano) return res.status(400).json({message:'Andika Izina NA Amatazirano!', success:false}); if(!/^[0-9]{4}$/.test(password||'')) return res.status(400).json({message:'Password = 4 GUSA!', success:false}); try{ const r=await pool.query('INSERT INTO super_agents(full_name,izina,amatazirano,phone,password) VALUES($1,$2,$3,$4,$5) RETURNING *',[finalName,izina,amatazirano,phone,password]); await logOp(phone, finalName, 'super_agent', 'REGISTER SUPER', 'Yiyandikishije Super Agent', 0); await notifyAdmin('Super Agent nshasha: '+finalName+' - '+phone); res.json({message:'Murakaza neza Super Agent '+finalName+'!', success:true, user:r.rows[0]});}catch(e){ res.status(400).json({message:'Iyi numero yamaze kwiyandikisha!', success:false}); } });
-app.post('/api/airtime', async (req,res)=>{ const {phone,amount,pin}=req.body; try{ const s=await pool.query('SELECT * FROM customers WHERE phone=$1',[phone]); if(!s.rows.length) return res.status(400).json({message:'Ntabaho!', success:false}); if(s.rows[0].password!==pin) return res.status(400).json({message:'PIN si yo!', success:false}); if(Number(s.rows[0].balance)<Number(amount)) return res.status(400).json({message:'Balance ntihagije!', success:false}); await pool.query('UPDATE customers SET balance=balance-$1, airtime_count=airtime_count+1 WHERE phone=$2',[amount,phone]); const u2=await pool.query('SELECT * FROM customers WHERE phone=$1',[phone]); let msg='Airtime '+amount+' BIF yaguzwe! Airtime: '+u2.rows[0].airtime_count+'/2'; if(u2.rows[0].airtime_count>=2 && u2.rows[0].bonus_locked){ await pool.query('UPDATE customers SET bonus_locked=false, balance=balance+bonus, bonus=0 WHERE phone=$1',[phone]); msg+=' BONUS 10,000 IRAFUNGUTSE!'; } await pool.query('INSERT INTO transactions(code,sender_phone,receiver_phone,amount,fee,type) VALUES($1,$2,$3,$4,0,$5)',['AT'+Date.now().toString().slice(-6),phone,phone,amount,'airtime']); await logOp(phone, s.rows[0].full_name, 'client', 'AIRTIME', 'Yaguze Airtime '+amount+' BIF', Number(amount)); await sendNotification(phone, 'SendMoney: Airtime '+amount+' BIF yaguzwe! '+msg); await notifyAdmin(s.rows[0].full_name+' ('+phone+') yaguze Airtime '+amount+' BIF'); res.json({message:msg, success:true, amount:Number(amount), fee:0}); }catch(e){ res.status(500).json({message:'DB ntikora: '+e.message, success:false}); } });
-app.post('/api/send', async (req,res)=>{ const {sender_phone,receiver_phone,amount,pin}=req.body; try{ const s=await pool.query('SELECT * FROM customers WHERE phone=$1',[sender_phone]); if(!s.rows.length) return res.status(400).json({message:'Sender ntabaho!', success:false}); if(s.rows[0].password!==pin) return res.status(400).json({message:'PIN si yo!', success:false}); const amt=Number(amount); const fee=Math.round(amt*0.02); if(amt>200000) return res.status(400).json({message:'Max 200,000 rimwe!', success:false}); const today=await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM transactions WHERE sender_phone=$1 AND created_at::date=CURRENT_DATE AND type='send'",[sender_phone]); if(Number(today.rows[0].t)+amt>500000) return res.status(400).json({message:'Max 500,000 ku musi! Wasigaje '+(500000-Number(today.rows[0].t))+' BIF', success:false}); if(Number(s.rows[0].balance)<amt+fee) return res.status(400).json({message:'Balance ntihagije!', success:false}); const code='SM'+Date.now().toString().slice(-6); await pool.query('UPDATE customers SET balance=balance-$1 WHERE phone=$2',[amt+fee,sender_phone]); await pool.query('INSERT INTO customers(full_name,phone,password,country,channel,status) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT (phone) DO UPDATE SET balance=customers.balance+$7',['Receiver',receiver_phone,'0000','Burundi','Lumicash','approved',amt]); await pool.query('INSERT INTO transactions(code,sender_phone,receiver_phone,amount,fee,type) VALUES($1,$2,$3,$4,$5,$6)',[code,sender_phone,receiver_phone,amt,fee,'send']); await pool.query('UPDATE agents SET commission=commission+$1 WHERE status=$2 ORDER BY id LIMIT 1',[(fee*0.6),'approved']).catch(()=>{}); await pool.query('UPDATE super_agents SET commission=commission+$1 WHERE status=$2 ORDER BY id LIMIT 1',[(fee*0.2),'approved']).catch(()=>{}); if(!s.rows[0].referral_paid && s.rows[0].invited_by){ const inv=await pool.query('SELECT * FROM customers WHERE referral_code=$1',[s.rows[0].invited_by]); if(inv.rows.length){ await pool.query('UPDATE customers SET balance=balance+200 WHERE referral_code=$1',[s.rows[0].invited_by]); await pool.query('UPDATE customers SET referral_paid=true WHERE phone=$1',[sender_phone]); } } await logOp(sender_phone, s.rows[0].full_name, 'client', 'SEND', 'Yarungitse '+amt+' BIF kuri '+receiver_phone+' - Fee '+fee+' - Code '+code, amt); await sendNotification(receiver_phone, 'SendMoney: Warungitswe '+amt+' BIF na '+sender_phone+'. Code: '+code+'. Fee: '+fee+' BIF. Murakoze!'); await sendNotification(sender_phone, 'SendMoney: Warungitse '+amt+' BIF kuri '+receiver_phone+'. Code: '+code+'. Fee: '+fee+' BIF. Bikunze!'); await notifyAdmin(s.rows[0].full_name+' ('+sender_phone+') yarungitse '+amt+' BIF kuri '+receiver_phone+' - Fee '+fee+' BIF - Code '+code); res.json({message:'Vyarungitswe!', success:true, code, amount:amt, fee:fee, receiver:receiver_phone, sender:sender_phone}); }catch(e){ res.status(500).json({message:'DB ntikora: '+e.message, success:false}); } });
-app.post('/api/withdraw', async (req,res)=>{
-  try{
-    const {phone,amount,channel,destination_phone,withdraw_to,password,role}=req.body;
-    const rle=role||'client'; const amt = Number(amount); const dest = (destination_phone || withdraw_to || '').trim();
-    if(!amt || amt < 5000) return res.status(400).json({message:'Min 5,000 BIF!', success:false});
-    if(amt > 100000) return res.status(400).json({message:'Max 100,000 ku musi!', success:false});
-    if(!channel) return res.status(400).json({message:'Hitamo umuhora: Lumicash / Ecocash / MTN / 【entity-Airtel¦canonical_name=Airtel】', success:false});
-    if(!dest || dest.length < 8) return res.status(400).json({message:'Andika numero ushaka kurotirirako!', success:false});
-    if(rle==='admin'){
-      const tx = await pool.query("SELECT COALESCE(SUM(fee),0) as total_fee FROM transactions WHERE type='send'");
-      const wdAdmin = await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE role='admin' AND status='approved'");
-      const adminTotal = Math.round(Number(tx.rows[0].total_fee||0) * 0.2); const adminPaid = Number(wdAdmin.rows[0].t||0); const adminRest = adminTotal - adminPaid;
-      if(amt > adminRest) return res.status(400).json({message:'Commission yawe isigaye ni '+adminRest.toLocaleString()+' BIF gusa!', success:false});
-      await pool.query('INSERT INTO withdrawals(phone,amount,channel,role,full_name,destination_phone) VALUES($1,$2,$3,$4,$5,$6)',[phone||'',amt,channel,'admin','Admin - SendMoney',dest]);
-      await logOp(phone||'ADMIN','Admin - SendMoney','admin','WITHDRAW ADMIN','Admin yasavye gukura '+amt+' BIF - '+channel+' -> '+dest, amt);
-      return res.json({message:'Saba ryohererejwe! Kuri '+channel+' : '+dest, success:true});
-    }
-    if(rle==='agent'||rle==='super_agent'){ const day=new Date().getDate(); if(day<1||day>5) return res.status(400).json({message:'Withdraw ya Commission ifungurwa gusa ku wa 1 - 5 buri kwezi! Ubu turi ku wa '+day+'.', success:false}); }
-    let table='customers'; if(rle==='agent') table='agents'; if(rle==='super_agent') table='super_agents';
-    const u=await pool.query(`SELECT * FROM ${table} WHERE phone=$1`,[phone]);
-    if(!u.rows.length) return res.status(400).json({message:'Ntabaho!', success:false});
-    if(password && u.rows[0].password!==password) return res.status(400).json({message:'PIN si yo!', success:false});
-    if(rle==='client'){ if(Number(u.rows[0].balance||0) < amt) return res.status(400).json({message:'Balance ntihagije! Ufise '+Number(u.rows[0].balance||0).toLocaleString()+' BIF', success:false}); }
-    else { if(Number(u.rows[0].commission||0) < amt) return res.status(400).json({message:'Commission ntihagije! Ufise '+Number(u.rows[0].commission||0).toLocaleString()+' BIF', success:false}); }
-    const d=await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE phone=$1 AND created_at::date=CURRENT_DATE AND status!='rejected'",[phone]);
-    if(Number(d.rows[0].t)+amt>100000) return res.status(400).json({message:'Max 100,000 ku musi!', success:false});
-    await pool.query('INSERT INTO withdrawals(phone,amount,channel,role,full_name,destination_phone) VALUES($1,$2,$3,$4,$5,$6)',[phone,amt,channel,rle,u.rows[0].full_name||'',dest]);
-    await logOp(phone, u.rows[0].full_name, rle, 'WITHDRAW REQUEST', 'Yasavye gukura '+amt+' BIF - '+channel+' -> '+dest, amt);
-    await sendNotification(phone, 'SendMoney: Wasavye gukura '+amt+' BIF - '+channel+' kuri '+dest+'. Tegereza Admin akweemeze.');
-    await notifyAdmin((u.rows[0].full_name||phone)+' ('+phone+') yasavye Withdraw '+amt+' BIF - '+channel+' -> '+dest+' - Role: '+rle);
-    res.json({message:'Saba ryohererejwe kuri Admin! Kuri '+channel+' : '+dest, success:true});
-  }catch(e){ res.status(500).json({message:'DB ntikora: '+e.message, success:false}); }
+function getTodaySendTotal(phone){
+  return transactions.filter(t=>t.sender_phone===phone && t.date===todayStr()).reduce((s,t)=>s+safeNum(t.amount),0);
+}
+
+app.post('/api/register', (req,res)=>{
+  const {izina, amatazirano, phone, password, country, channel, referral_code} = req.body;
+  if(!izina || !amatazirano || !phone || !password) return res.json({success:false, message:'Uzuza vyose!'});
+  if(findByPhone(phone)) return res.json({success:false, message:'Uyo numero yamaze kwiyandikisha!'});
+  const user = {full_name: izina+' '+amatazirano, izina, amatazirano, phone, password, country: country||'Burundi', channel: channel||'Lumicash', balance:0, bonus:10000, airtime_count:0, referral_code: referral_code||'', status:'pending', role:'client', created: todayStr()};
+  clients.push(user);
+  if(referral_code){
+    const inviter = findByPhone(referral_code);
+    if(inviter && inviter.role==='client') inviter.balance = safeNum(inviter.balance)+200;
+  }
+  res.json({success:true, message:'Wiyandikishije! Tegereza Admin akwemere.'});
 });
-app.get('/api/withdrawals', async (req,res)=>{ try{ const {phone,role}=req.query; let q='SELECT * FROM withdrawals WHERE phone=$1'; let p=[phone]; if(role){ q+=' AND role=$2'; p.push(role); } q+=' ORDER BY created_at DESC LIMIT 50'; const r=await pool.query(q,p); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/client/transactions', async (req,res)=>{ try{ const {phone}=req.query; const r=await pool.query('SELECT * FROM transactions WHERE sender_phone=$1 OR receiver_phone=$1 ORDER BY created_at DESC LIMIT 50',[phone]); res.json(r.rows); }catch(e){ res.json([]); } });
-app.post('/api/reset-request', async (req,res)=>{ try{ const {phone,q1,q2,q3,q4,q5}=req.body; await pool.query('INSERT INTO reset_requests(phone,q1,q2,q3,q4,q5) VALUES($1,$2,$3,$4,$5,$6)',[phone,q1,q2,q3,q4,q5]); await logOp(phone,'','client','RESET REQUEST','Yasavye Reset Password - Ibibazo 5',0); await notifyAdmin(phone+' yasavye Reset Password'); res.json({message:'Ibibazo 5 vyohererejwe kuri Admin!', success:true}); }catch(e){ res.status(500).json({message:e.message, success:false}); } });
-app.get('/api/admin/operations', async (req,res)=>{ try{ const r = await pool.query('SELECT * FROM operations_log ORDER BY created_at DESC LIMIT 200'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/notifications', async (req,res)=>{ try{ const r = await pool.query("SELECT * FROM operations_log WHERE action IN ('NOTIFICATION ADMIN','NOTIFICATION','SEND','WITHDRAW REQUEST','REGISTER','AIRTIME','RESET REQUEST') ORDER BY created_at DESC LIMIT 50"); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/live', async (req,res)=>{ try{ const last5 = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at > NOW() - INTERVAL '5 minutes'"); const last60 = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at > NOW() - INTERVAL '1 hour'"); const today = await pool.query("SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM operations_log WHERE created_at::date = CURRENT_DATE"); const todaySend = await pool.query("SELECT COALESCE(SUM(amount),0) as t, COALESCE(SUM(fee),0) as f, COUNT(*) as c FROM transactions WHERE created_at::date = CURRENT_DATE AND type='send'"); const recent = await pool.query('SELECT * FROM operations_log ORDER BY created_at DESC LIMIT 10'); const counts = await pool.query("SELECT (SELECT COUNT(*) FROM customers) as clients, (SELECT COUNT(*) FROM agents) as agents, (SELECT COUNT(*) FROM super_agents) as supers, (SELECT COUNT(*) FROM customers WHERE status='pending') as pending_clients"); res.json({ last5: last5.rows[0], last60: last60.rows[0], today: today.rows[0], todaySend: todaySend.rows[0], recent: recent.rows, counts: counts.rows[0] }); }catch(e){ res.status(500).json({message:'Live error: '+e.message}); } });
-app.get('/api/admin/reset-requests', async (req,res)=>{ try{ const r=await pool.query("SELECT * FROM reset_requests WHERE status='pending' ORDER BY created_at DESC"); res.json(r.rows); }catch(e){ res.json([]); } });
-app.post('/api/admin/reset-password', async (req,res)=>{ try{ const {phone,new_password}=req.body; let done=false; for(const t of ['customers','agents','super_agents']){ const r=await pool.query(`UPDATE ${t} SET password=$1 WHERE phone=$2 RETURNING *`,[new_password,phone]); if(r.rows.length) done=true; } if(!done) return res.status(404).json({message:'Numero ntabaho!', success:false}); await pool.query("UPDATE reset_requests SET status='approved' WHERE phone=$1",[phone]); clearFail(phone); await logOp('ADMIN','Admin - SendMoney','admin','RESET PASSWORD','Admin yahinduriye password '+phone,0); res.json({message:'Password yahindutse! Block yarakuwe!', success:true}); }catch(e){ res.status(500).json({message:e.message, success:false}); } });
-app.get('/api/admin/customers', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM customers ORDER BY created_at DESC'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/agents', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM agents ORDER BY created_at DESC'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/super-agents', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM super_agents ORDER BY created_at DESC'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/transactions', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 200'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/withdrawals', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM withdrawals ORDER BY created_at DESC LIMIT 200'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/admin/commission', async (req,res)=>{ try{ const tx = await pool.query("SELECT COALESCE(SUM(fee),0) as total_fee, COALESCE(SUM(amount),0) as total_sent, COUNT(*) as total_count FROM transactions WHERE type='send'"); const wdAdmin = await pool.query("SELECT COALESCE(SUM(amount),0) as t FROM withdrawals WHERE role='admin' AND status='approved'"); const ag = await pool.query("SELECT COALESCE(SUM(commission),0) as t FROM agents"); const sp = await pool.query("SELECT COALESCE(SUM(commission),0) as t FROM super_agents"); const agList = await pool.query('SELECT full_name, phone, commission, status FROM agents ORDER BY commission DESC'); const spList = await pool.query('SELECT full_name, phone, commission, status FROM super_agents ORDER BY commission DESC'); const totalFee = Number(tx.rows[0].total_fee||0); const adminTotal = Math.round(totalFee * 0.2); const adminPaid = Number(wdAdmin.rows[0].t||0); res.json({ total_fee: totalFee, total_sent: Number(tx.rows[0].total_sent||0), total_count: Number(tx.rows[0].total_count||0), admin_total: adminTotal, admin_paid: adminPaid, admin_rest: adminTotal - adminPaid, agent_total: Number(ag.rows[0].t||0), super_total: Number(sp.rows[0].t||0), agent_list: agList.rows, super_list: spList.rows, agent_share: Math.round(totalFee*0.6), super_share: Math.round(totalFee*0.2) }); }catch(e){ res.status(500).json({message:e.message}); } });
-app.post('/api/admin/customers/:id/:action', async (req,res)=>{ try{ const {id,action}=req.params; if(action==='approve') await pool.query("UPDATE customers SET status='approved' WHERE id=$1",[id]); if(action==='block') await pool.query("UPDATE customers SET status='blocked' WHERE id=$1",[id]); if(action==='unblock') await pool.query("UPDATE customers SET status='approved' WHERE id=$1",[id]); if(action==='delete') await pool.query('DELETE FROM customers WHERE id=$1',[id]); await logOp('ADMIN','Admin - SendMoney','admin','CLIENT '+action,'Admin yakoze '+action+' kuri Client ID '+id,0); res.json({message:'Vyagenze!', success:true}); }catch(e){ res.status(500).json({message:e.message}); } });
-app.post('/api/admin/agents/:id/:action', async (req,res)=>{ try{ const {id,action}=req.params; if(action==='approve') await pool.query("UPDATE agents SET status='approved' WHERE id=$1",[id]); if(action==='block') await pool.query("UPDATE agents SET status='blocked' WHERE id=$1",[id]); if(action==='unblock') await pool.query("UPDATE agents SET status='approved' WHERE id=$1",[id]); await logOp('ADMIN','Admin - SendMoney','admin','AGENT '+action,'Admin yakoze '+action+' kuri Agent ID '+id,0); res.json({message:'Vyagenze!', success:true}); }catch(e){ res.status(500).json({message:e.message}); } });
-app.post('/api/admin/super-agents/:id/:action', async (req,res)=>{ try{ const {id,action}=req.params; if(action==='approve') await pool.query("UPDATE super_agents SET status='approved' WHERE id=$1",[id]); if(action==='block') await pool.query("UPDATE super_agents SET status='blocked' WHERE id=$1",[id]); if(action==='unblock') await pool.query("UPDATE super_agents SET status='approved' WHERE id=$1",[id]); if(action==='delete') await pool.query('DELETE FROM super_agents WHERE id=$1',[id]); await logOp('ADMIN','Admin - SendMoney','admin','SUPER '+action,'Admin yakoze '+action+' kuri Super ID '+id,0); res.json({message:'Vyagenze!', success:true}); }catch(e){ res.status(500).json({message:e.message}); } });
-app.post('/api/admin/withdrawals/:id/:action', async (req,res)=>{ try{ const {id,action}=req.params; const w=await pool.query('SELECT * FROM withdrawals WHERE id=$1',[id]); if(!w.rows.length) return res.status(404).json({message:'Ntabaho!', success:false}); const wd=w.rows[0]; if(action==='approve'){ await pool.query("UPDATE withdrawals SET status='approved' WHERE id=$1",[id]); if(wd.role==='client') await pool.query('UPDATE customers SET balance=balance-$1 WHERE phone=$2',[wd.amount,wd.phone]); if(wd.role==='agent') await pool.query('UPDATE agents SET commission=commission-$1 WHERE phone=$2',[wd.amount,wd.phone]); if(wd.role==='super_agent') await pool.query('UPDATE super_agents SET commission=commission-$1 WHERE phone=$2',[wd.amount,wd.phone]); await sendNotification(wd.phone, 'SendMoney: Withdraw yawe ya '+wd.amount+' BIF YEMEWE! Amafaranga aragiye kuri '+wd.channel+' : '+(wd.destination_phone||wd.phone)+'.'); } if(action==='reject'){ await pool.query("UPDATE withdrawals SET status='rejected' WHERE id=$1",[id]); await sendNotification(wd.phone, 'SendMoney: Withdraw yawe ya '+wd.amount+' BIF YANSE. Vugana na Admin: +257 67899429'); } await logOp('ADMIN','Admin - SendMoney','admin','WITHDRAW '+action,'Admin yakoze '+action+' kuri Withdraw '+wd.amount+' BIF - '+wd.phone+' -> '+(wd.destination_phone||''), Number(wd.amount)); res.json({message:'Vyagenze!', success:true}); }catch(e){ res.status(500).json({message:e.message}); } });
-app.get('/api/agent/transactions', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 100'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/super/transactions', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 100'); res.json(r.rows); }catch(e){ res.json([]); } });
-app.get('/api/super/agents', async (req,res)=>{ try{ const r=await pool.query('SELECT * FROM agents ORDER BY created_at DESC'); res.json(r.rows); }catch(e){ res.json([]); } });
-const PORT=process.env.PORT||10000; app.listen(PORT,()=>{ console.log('Server kuri '+PORT); initDB(); });
+
+app.post('/api/agents', (req,res)=>{
+  const {izina, amatazirano, phone, password, province} = req.body;
+  if(!izina || !amatazirano || !phone || !password) return res.json({success:false, message:'Uzuza vyose!'});
+  if(findByPhone(phone)) return res.json({success:false, message:'Uyo numero yamaze kwiyandikisha!'});
+  agents.push({full_name: izina+' '+amatazirano, izina, amatazirano, phone, password, province: province||'Bujumbura', commission:0, status:'pending', role:'agent', created: todayStr()});
+  res.json({success:true, message:'Agent yiyandikishije! Tegereza Admin.'});
+});
+
+app.post('/api/admin/create-super', (req,res)=>{
+  const {izina, amatazirano, phone, password} = req.body;
+  if(findByPhone(phone)) return res.json({success:false, message:'Yamaze kubaho!'});
+  superAgents.push({full_name: izina+' '+amatazirano, izina, amatazirano, phone, password, commission:0, status:'approved', role:'super_agent', created: todayStr()});
+  res.json({success:true, message:'Super Agent yaremwe!'});
+});
+
+app.post('/api/login', (req,res)=>{
+  const {phone, password, role} = req.body;
+  const f = failedLogins[phone] || {count:0, until:0};
+  if(Date.now() < f.until) return res.json({success:false, message:'Warafunzwe. Gerageza hanyuma.'});
+  let user = null;
+  if(role==='client') user = clients.find(x=>x.phone===phone);
+  if(role==='agent') user = agents.find(x=>x.phone===phone);
+  if(role==='super_agent') user = superAgents.find(x=>x.phone===phone);
+  if(!user) return res.json({success:false, message:'Ntawe aboneka!'});
+  if(user.password !== password){
+    f.count++; if(f.count>=4){ f.until = Date.now()+24*60*60*1000; f.count=0; }
+    failedLogins[phone]=f;
+    return res.json({success:false, message:'Password si yo!'});
+  }
+  if(user.status!=='approved') return res.json({success:false, message:'Tegereza Admin akwemere!'});
+  failedLogins[phone]={count:0, until:0};
+  res.json({success:true, message:'Murakaza neza!', user});
+});
+
+app.post('/api/admin/login', (req,res)=>{
+  const {phone, password, code2fa} = req.body;
+  const f = failedLogins['ADMIN_'+phone] || {count:0, until:0};
+  if(Date.now() < f.until) return res.json({success:false, message:'Admin yafunzwe iminota 30.'});
+  if(phone!==adminUser.phone || password!==adminUser.password){
+    f.count++; if(f.count>=4){ f.until = Date.now()+30*60*1000; f.count=0; }
+    failedLogins['ADMIN_'+phone]=f;
+    return res.json({success:false, message:'Admin login si yo!'});
+  }
+  if(code2fa!=='123456') return res.json({success:false, message:'Code 2FA si yo!'});
+  failedLogins['ADMIN_'+phone]={count:0, until:0};
+  res.json({success:true, message:'Murakaza neza Admin!', user: adminUser});
+});
+
+app.post('/api/send', (req,res)=>{
+  const {sender_phone, receiver_phone, amount, password} = req.body;
+  const amt = safeNum(amount);
+  const sender = clients.find(x=>x.phone===sender_phone);
+  if(!sender) return res.json({message:'Sender ntaboneka!'});
+  if(sender.password!==password) return res.json({message:'PIN si yo!'});
+  if(amt<=0) return res.json({message:'Andika Amafaranga!'});
+  if(amt>200000) return res.json({message:'Max rimwe ni 200,000!'});
+  if(getTodaySendTotal(sender_phone)+amt>500000) return res.json({message:'Warengeje 500,000 ku musi!'});
+  const fee = Math.round(amt*0.02);
+  const total = amt+fee;
+  if(safeNum(sender.balance) < total) return res.json({message:'Balance ntihagije! Ukeneye '+total.toLocaleString()});
+  let receiver = clients.find(x=>x.phone===receiver_phone);
+  if(!receiver) return res.json({message:'Uwo urungikira ntiyiyandikishije! Amaze kwiyandikisha ubanza.'});
+  sender.balance = safeNum(sender.balance)-total;
+  receiver.balance = safeNum(receiver.balance)+amt;
+  const agentComm = Math.round(fee*0.60);
+  const superComm = Math.round(fee*0.20);
+  const adminComm = fee - agentComm - superComm;
+  if(agents.length>0) agents[0].commission = safeNum(agents[0].commission)+agentComm;
+  if(superAgents.length>0) superAgents[0].commission = safeNum(superAgents[0].commission)+superComm;
+  adminUser.commission = safeNum(adminUser.commission)+adminComm;
+  transactions.push({code: genCode(), sender_phone, receiver_phone, amount: amt, fee, agent_comm: agentComm, super_comm: superComm, admin_comm: adminComm, status:'done', date: todayStr()});
+  res.json({message:'Wurungitse '+amt.toLocaleString()+' BIF! Fee '+fee+' BIF'});
+});
+
+app.post('/api/airtime', (req,res)=>{
+  const {phone, airtime_phone, amount, password} = req.body;
+  const amt = safeNum(amount);
+  const user = clients.find(x=>x.phone===phone);
+  if(!user) return res.json({message:'Ntaboneka!'});
+  if(user.password!==password) return res.json({message:'PIN si yo!'});
+  if(safeNum(user.balance) < amt) return res.json({message:'Balance ntihagije!'});
+  user.balance = safeNum(user.balance)-amt;
+  user.airtime_count = safeNum(user.airtime_count)+1;
+  if(user.airtime_count>=2 && safeNum(user.bonus)>0){
+    user.balance = safeNum(user.balance)+safeNum(user.bonus);
+    user.bonus = 0;
+  }
+  transactions.push({code: genCode(), sender_phone: phone, receiver_phone: airtime_phone||phone, amount: amt, fee:0, status:'airtime', date: todayStr()});
+  res.json({message:'Waguze Airtime '+amt.toLocaleString()+'!'});
+});
+
+app.post('/api/withdraw', (req,res)=>{
+  const {phone, amount, channel, destination_phone, password, role} = req.body;
+  const amt = safeNum(amount);
+  if(!channel) return res.json({message:'Hitamo umuhora!'});
+  if(!destination_phone) return res.json({message:'Andika numero ushaka kurotirirako!'});
+  if(amt<5000) return res.json({message:'Min ni 5,000 BIF!'});
+  // ADMIN - LIMITE KU NCURO, ATARI KU MUSI
+  if(role==='admin'){
+    if(amt>100000) return res.json({message:'Max ku ncuro imwe ni 100,000 BIF! Kora incuro 2 niba ushaka 200,000.'});
+    if(adminUser.password!==password) return res.json({message:'PIN si yo!'});
+    if(safeNum(adminUser.commission) < amt) return res.json({message:'Commission ntihagije!'});
+    adminUser.commission = safeNum(adminUser.commission)-amt;
+    withdrawals.push({id: Date.now().toString(), phone, role, amount: amt, channel, destination_phone, status:'done', date: todayStr()});
+    return res.json({message:'Admin Withdraw yakozwe: '+amt.toLocaleString()+' BIF -> '+destination_phone});
+  }
+  // CLIENT / AGENT / SUPER AGENT - LIMITE KU MUSI
+  if(amt>100000) return res.json({message:'Max ku musi ni 100,000 BIF!'});
+  if(getTodayWithdrawTotal(phone)+amt>100000) return res.json({message:'Warengeje 100,000 ku musi!'});
+  if(role==='agent' || role==='super_agent'){
+    const d = new Date().getDate();
+    if(d<1 || d>5) return res.json({message:'Withdraw ya Commission ifungurwa gusa ku wa 1-5 buri kwezi!'});
+  }
+  let user = null;
+  if(role==='client') user = clients.find(x=>x.phone===phone);
+  if(role==='agent') user = agents.find(x=>x.phone===phone);
+  if(role==='super_agent') user = superAgents.find(x=>x.phone===phone);
+  if(!user) return res.json({message:'Ntaboneka!'});
+  if(user.password!==password) return res.json({message:'PIN si yo!'});
+  if(role==='client'){
+    if(safeNum(user.balance) < amt) return res.json({message:'Balance ntihagije!'});
+    user.balance = safeNum(user.balance)-amt;
+  } else {
+    if(safeNum(user.commission) < amt) return res.json({message:'Commission ntihagije!'});
+    user.commission = safeNum(user.commission)-amt;
+  }
+  withdrawals.push({id: Date.now().toString(), phone, role, amount: amt, channel, destination_phone, status:'done', date: todayStr()});
+  res.json({message:'Withdraw yakozwe: '+amt.toLocaleString()+' BIF -> '+destination_phone});
+});
+
+app.post('/api/reset-request', (req,res)=>{ res.json({message:'Ibibazo vyakiriwe! Tegereza Admin.'}); });
+
+app.get('/api/admin/clients', (req,res)=> res.json(clients));
+app.get('/api/admin/agents', (req,res)=> res.json(agents));
+app.get('/api/admin/super-agents', (req,res)=> res.json(superAgents));
+app.get('/api/admin/pending', (req,res)=> res.json([...clients.filter(x=>x.status==='pending'), ...agents.filter(x=>x.status==='pending')]));
+app.get('/api/admin/operations', (req,res)=> res.json(transactions));
+app.get('/api/admin/withdrawals', (req,res)=> res.json(withdrawals));
+app.get('/api/admin/commissions', (req,res)=> res.json({agent_total: agents.reduce((s,x)=>s+safeNum(x.commission),0), super_total: superAgents.reduce((s,x)=>s+safeNum(x.commission),0), admin_total: safeNum(adminUser.commission)}));
+app.get('/api/admin/stats', (req,res)=> res.json({admin_commission: safeNum(adminUser.commission), clients: clients.length, agents: agents.length, transactions: transactions.length}));
+app.get('/api/client/transactions', (req,res)=>{ const p=req.query.phone; res.json(transactions.filter(t=>t.sender_phone===p || t.receiver_phone===p)); });
+app.get('/api/agent/transactions', (req,res)=> res.json(transactions));
+app.get('/api/super/transactions', (req,res)=> res.json(transactions));
+app.get('/api/super/agents', (req,res)=> res.json(agents));
+app.get('/api/withdrawals', (req,res)=>{ const p=req.query.phone; res.json(withdrawals.filter(w=>w.phone===p)); });
+
+app.post('/api/admin/approve', (req,res)=>{
+  const {phone, role} = req.body;
+  let u = null;
+  if(role==='client') u = clients.find(x=>x.phone===phone);
+  if(role==='agent') u = agents.find(x=>x.phone===phone);
+  if(u) u.status='approved';
+  res.json({message:'Yemewe!'});
+});
+app.post('/api/admin/withdraw-approve', (req,res)=> res.json({message:'Withdraw yemewe!'}));
+app.post('/api/admin/withdraw-reject', (req,res)=> res.json({message:'Withdraw yansewe!'}));
+
+app.get('/', (req,res)=> res.sendFile(path.join(__dirname,'index.html')));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, ()=> console.log('SendMoney kuri '+PORT));
