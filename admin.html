@@ -1,53 +1,38 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin - SendMoney</title><style>body{margin:0;font-family:Arial;background:#f2f4f8}.card{max-width:800px;margin:12px auto;background:#fff;border-radius:16px;padding:16px}button{padding:10px;border:0;border-radius:10px;background:#0b5cff;color:#fff;font-weight:800;margin-top:8px;cursor:pointer}.b2{background:#111}.bg{background:#34c759}.br{background:#ff3b30}input,select{padding:10px;border:1px solid #ddd;border-radius:10px;width:100%;margin-top:6px;box-sizing:border-box}label{font-weight:700;font-size:13px}.box{background:#eef3ff;padding:12px;border-radius:12px}.item{border-bottom:1px solid #eee;padding:8px 0;font-size:14px}.row{display:flex;gap:8px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tabs button{margin-top:0}.big{font-size:26px;font-weight:900;color:#0b5cff}</style></head><body><div class="card">
-<h2>Admin - SendMoney</h2>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin - SendMoney</title><style>body{margin:0;font-family:Arial;background:#f2f4f8}.card{max-width:800px;margin:12px auto;background:#fff;border-radius:16px;padding:16px}button{padding:10px;border:0;border-radius:10px;background:#0b5cff;color:#fff;font-weight:800;margin-top:8px;cursor:pointer}.b2{background:#111}.bg{background:#34c759}.br{background:#ff3b30}input,select{padding:10px;border:1px solid #ddd;border-radius:10px;width:100%;margin-top:6px;box-sizing:border-box}label{font-weight:700;font-size:13px}.box{background:#eef3ff;padding:12px;border-radius:12px}.item{border-bottom:1px solid #eee;padding:8px 0;font-size:14px}.row{display:flex;gap:8px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tabs button{margin-top:0}.big{font-size:26px;font-weight:900;color:#0b5cff}.live{display:inline-block;background:#34c759;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:800}.live-dot{width:10px;height:10px;background:#34c759;border-radius:50%;display:inline-block;animation:blink 1s infinite}@keyframes blink{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}</style></head><body><div class="card">
+<h2>Admin - SendMoney <span class="live"><span class="live-dot"></span> LIVE</span></h2>
+<div style="font-size:13px">Gukorwa ubu: <b id="lastUpdate">—</b> • Buri masegonda 5 biragaruka ubwavyo</div>
 <div class="box">Commission ya Admin: <div class="big"><span id="adminComm">0</span> BIF</div><div>Admin ahabwa 20% ya Fee (2%)</div></div>
+
 <h3>Withdraw Commission ya Admin — Limite ku ncuro, atari ku musi</h3>
-<p style="background:#e8f5e9;padding:10px;border-radius:10px;font-size:13px">Admin ashobora gukura <b>Max 100,000 BIF ku ncuro imwe</b>. Ashobora kubisubiramwo kenshi ku musi. Nta limite y'umusi.</p>
+<p style="background:#e8f5e9;padding:10px;border-radius:10px;font-size:13px">Admin ashobora gukura <b>Max 100,000 BIF ku ncuro imwe</b>. Ashobora kubisubiramwo kenshi ku musi.</p>
 <label>Amafaranga (Min 5,000 - Max 100,000 ku ncuro)</label><input id="wAmt" type="number" placeholder="">
-<label>Hitamo umuhora ushaka kurotirirako</label><select id="wCh"><option value="">-- Hitamo --</option><option>Lumicash</option><option>Ecocash</option><option>MTN</option><option>Airtel</option></select>
+<label>Hitamo umuhora ushaka kurotirirako</label><select id="wCh"><option value="">-- Hitamo --</option><option>Lumicash</option><option>Ecocash</option><option>MTN</option><option>【entity-Airtel¦canonical_name=Airtel】</option></select>
 <label>Numero ushaka kurotirirako</label><div class="row"><select id="wCode"><option value="+257">+257</option><option value="+250">+250</option><option value="+255">+255</option><option value="+243">+243</option><option value="+256">+256</option><option value="+254">+254</option></select><input id="wDest" type="tel" placeholder=""></div>
 <label>PIN Admin</label><input id="wPin" type="password" inputmode="numeric" maxlength="4" placeholder="">
 <button class="b2" onclick="adminWithdraw()">Withdraw Commission ya Admin</button>
+
 <h3>Kurema Super Agent</h3><label>Izina</label><input id="sIzina" placeholder=""><label>Amatazirano</label><input id="sAmata" placeholder=""><label>Phone</label><input id="sPhone" placeholder=""><label>Password</label><input id="sPass" type="password" maxlength="4" placeholder=""><button class="bg" onclick="createSuper()">Kurema Super Agent</button>
-<div class="tabs" style="margin-top:16px"><button onclick="showTab('users')">Abakoresha</button><button onclick="showTab('pending')">Pending</button><button onclick="showTab('ops')">Operations</button><button onclick="showTab('wd')">Withdraws</button><button onclick="showTab('comm')">Commissions</button></div>
+
+<div class="tabs" style="margin-top:16px"><button onclick="showTab('users')">Abakoresha</button><button onclick="showTab('pending')">Pending</button><button onclick="showTab('ops')">Operations - LIVE</button><button onclick="showTab('wd')">Withdraws - LIVE</button><button onclick="showTab('comm')">Commissions</button></div>
 <div id="tab-users"><h3>Abakoresha</h3><div id="users"></div></div>
 <div id="tab-pending" style="display:none"><h3>Pending</h3><div id="pending"></div></div>
-<div id="tab-ops" style="display:none"><h3>Operations</h3><div id="ops"></div></div>
-<div id="tab-wd" style="display:none"><h3>Withdraws</h3><div id="wd"></div></div>
+<div id="tab-ops" style="display:none"><h3>🔴 Operations zikora ubu — Live</h3><div id="ops"></div></div>
+<div id="tab-wd" style="display:none"><h3>🔴 Withdraws zikora ubu — Live</h3><div id="wd"></div></div>
 <div id="tab-comm" style="display:none"><h3>Commissions</h3><div id="commBox"></div></div>
 <button class="b2" onclick="location.href='index.html'">Sohoka</button></div><script>
 function safeNum(v){const n=Number(v||0);return isNaN(n)?0:n;}
 let admin=JSON.parse(localStorage.getItem('me')||'{}');
 function showTab(t){['users','pending','ops','wd','comm'].forEach(x=>{document.getElementById('tab-'+x).style.display=(x===t?'block':'none');});}
-async function adminWithdraw(){
-  const amount=safeNum(document.getElementById('wAmt').value);
-  if(!amount) return alert('Andika Amafaranga!');
-  if(amount<5000) return alert('Min ni 5,000!');
-  if(amount>100000) return alert('Max ku ncuro imwe ni 100,000! Kora incuro 2 niba ushaka 200,000.');
-  const channel=document.getElementById('wCh').value;
-  if(!channel) return alert('Hitamo umuhora ushaka kurotirirako!');
-  const dest=document.getElementById('wCode').value+document.getElementById('wDest').value.trim();
-  if(!document.getElementById('wDest').value.trim()) return alert('Andika numero ushaka kurotirirako!');
-  const password=document.getElementById('wPin').value.trim();
-  if(!password) return alert('Andika PIN!');
-  const r=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:admin.phone,amount,channel,destination_phone:dest,password,role:'admin'})});
-  const d=await r.json(); alert(d.message); if(r.ok){loadAdminComm();loadWd();}
-}
-async function createSuper(){
-  const izina=document.getElementById('sIzina').value.trim();
-  const amatazirano=document.getElementById('sAmata').value.trim();
-  const phone=document.getElementById('sPhone').value.trim();
-  const password=document.getElementById('sPass').value.trim();
-  if(!izina||!amatazirano||!phone||!password) return alert('Uzuza vyose!');
-  const r=await fetch('/api/admin/create-super',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({izina,amatazirano,phone,password})});
-  const d=await r.json(); alert(d.message);
-}
+async function adminWithdraw(){const amount=safeNum(document.getElementById('wAmt').value);if(!amount) return alert('Andika Amafaranga!');if(amount<5000) return alert('Min ni 5,000!');if(amount>100000) return alert('Max ku ncuro imwe ni 100,000! Kora incuro 2 niba ushaka 200,000.');const channel=document.getElementById('wCh').value;if(!channel) return alert('Hitamo umuhora!');const dest=document.getElementById('wCode').value+document.getElementById('wDest').value.trim();if(!document.getElementById('wDest').value.trim()) return alert('Andika numero!');const password=document.getElementById('wPin').value.trim();if(!password) return alert('Andika PIN!');const r=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:admin.phone,amount,channel,destination_phone:dest,password,role:'admin'})});const d=await r.json();alert(d.message);if(r.ok){loadAdminComm();loadWd();}}
+async function createSuper(){const izina=document.getElementById('sIzina').value.trim();const amatazirano=document.getElementById('sAmata').value.trim();const phone=document.getElementById('sPhone').value.trim();const password=document.getElementById('sPass').value.trim();if(!izina||!amatazirano||!phone||!password) return alert('Uzuza vyose!');const r=await fetch('/api/admin/create-super',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({izina,amatazirano,phone,password})});const d=await r.json();alert(d.message);}
 async function loadAdminComm(){try{const r=await fetch('/api/admin/stats');const d=await r.json();document.getElementById('adminComm').innerText=safeNum(d.admin_commission||0).toLocaleString();}catch(e){}}
 async function loadUsers(){try{const r=await fetch('/api/admin/clients');const rows=await r.json();document.getElementById('users').innerHTML=(rows||[]).map(x=>`<div class="item">${x.full_name||''} - ${x.phone||''} - Balance ${safeNum(x.balance).toLocaleString()} - ${x.status||''} <button onclick="approveUser('${x.phone}','client')">Emeza</button></div>`).join('')||'Nta kintu';}catch(e){}}
 async function loadPending(){try{const r=await fetch('/api/admin/pending');const rows=await r.json();document.getElementById('pending').innerHTML=(rows||[]).map(x=>`<div class="item">${x.full_name||''} - ${x.phone||''} - ${x.role||''} <button class="bg" onclick="approveUser('${x.phone}','${x.role}')">Emeza</button></div>`).join('')||'Nta kintu';}catch(e){}}
-async function loadOps(){try{const r=await fetch('/api/admin/operations');const rows=await r.json();document.getElementById('ops').innerHTML=(rows||[]).slice(0,30).map(x=>`<div class="item">${x.code||''} - ${x.sender_phone||''} -> ${x.receiver_phone||''} - ${safeNum(x.amount).toLocaleString()} BIF - Fee ${safeNum(x.fee)} - ${x.status||''}</div>`).join('')||'Nta kintu';}catch(e){}}
-async function loadWd(){try{const r=await fetch('/api/admin/withdrawals');const rows=await r.json();document.getElementById('wd').innerHTML=(rows||[]).map(x=>`<div class="item">${x.phone||''} (${x.role||''}) - ${safeNum(x.amount).toLocaleString()} BIF - ${x.channel||''} -> ${x.destination_phone||''} - ${x.status||''}</div>`).join('')||'Nta kintu';}catch(e){}}
+async function loadOps(){try{const r=await fetch('/api/admin/operations');const rows=await r.json();document.getElementById('ops').innerHTML=(rows||[]).slice(0,30).map(x=>`<div class="item">${x.code||''} - ${x.sender_phone||''} -> ${x.receiver_phone||''} - ${safeNum(x.amount).toLocaleString()} BIF - Fee ${safeNum(x.fee)} - ${x.status||''} - ${x.date||''}</div>`).join('')||'Nta kintu';}catch(e){}}
+async function loadWd(){try{const r=await fetch('/api/admin/withdrawals');const rows=await r.json();document.getElementById('wd').innerHTML=(rows||[]).map(x=>`<div class="item">${x.phone||''} (${x.role||''}) - ${safeNum(x.amount).toLocaleString()} BIF - ${x.channel||''} -> ${x.destination_phone||''} - ${x.status||''} - ${x.date||''}</div>`).join('')||'Nta kintu';}catch(e){}}
 async function loadComm(){try{const r=await fetch('/api/admin/commissions');const d=await r.json();document.getElementById('commBox').innerHTML=`<div class="item">Agent Total: ${safeNum(d.agent_total).toLocaleString()} BIF</div><div class="item">Super Agent Total: ${safeNum(d.super_total).toLocaleString()} BIF</div><div class="item">Admin Total: ${safeNum(d.admin_total).toLocaleString()} BIF</div>`;}catch(e){}}
 async function approveUser(phone,role){const r=await fetch('/api/admin/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,role})});const d=await r.json();alert(d.message);loadUsers();loadPending();}
-loadAdminComm();loadUsers();loadPending();loadOps();loadWd();loadComm();
+async function refreshAll(){document.getElementById('lastUpdate').innerText=new Date().toLocaleTimeString();await loadAdminComm();await loadUsers();await loadPending();await loadOps();await loadWd();await loadComm();}
+refreshAll();
+setInterval(refreshAll, 5000);
 </script></body></html>
